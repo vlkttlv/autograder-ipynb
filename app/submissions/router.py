@@ -21,6 +21,7 @@
 
 """
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from datetime import datetime
 from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 import nbformat
@@ -47,11 +48,16 @@ async def add_submission(
     current_user: Users = Depends(get_current_user)
 ):
     """Загрузка решения"""
-    # TODO: добавить проверку даты
+
+    now_datetime = datetime.now()
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
 
+    if assignment.due_date < now_datetime.date() or assignment.start_date > now_datetime.date():
+        raise HTTPException(status_code=400, detail="Дедлайн сгорел или еще не начался(")
+    
     # проверка формата файла
     filename = submission_file.filename
     if not filename.endswith(".ipynb"):
@@ -86,10 +92,16 @@ async def check_submission(
     current_user: Users = Depends(get_current_user)
 ):
     """Проверка решения"""
-    # TODO: добавить проверку даты
+
+    now_datetime = datetime.now()
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
+
+    if assignment.due_date < now_datetime.date() or assignment.start_date > now_datetime.date():
+        raise HTTPException(status_code=400, detail="Дедлайн сгорел или еще не начался(")
+
 
     submission_service = await SubmissionsService.find_one_or_none(user_id=current_user.id,
                                                                    assignment_id=assignment_id)
@@ -115,6 +127,31 @@ async def check_submission(
     return {"message": "ok",
             "score": total_points}
                 
+
+@router.get("/")
+async def get_submissions(current_user: Users = Depends(get_current_user)):
+    """Получение списка всех решений"""
+    return await SubmissionsService.find_all(user_id=current_user.id)
+
+
+@router.get("/{id}")
+async def get_submission(id: int, current_user: Users = Depends(get_current_user)):
+    """Получение конкретного решения по ID"""
+    submission = await SubmissionsService.find_one_or_none(id=id, user_id=current_user.id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Решение не найдено")
+    return submission
+
+
+@router.delete("/{id}")
+async def delete_submission(id: int, current_user: Users = Depends(get_current_user)):
+    """Удаление решения по ID"""
+    submission = await SubmissionsService.find_one_or_none(id=id, user_id=current_user.id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Решение не найдено")
+    await SubmissionsService.delete(id=id, user_id=current_user.id)
+    return {"message": "Решение удалено"}
+
 
 @router.post("/test/test")
 async def test_submission(
