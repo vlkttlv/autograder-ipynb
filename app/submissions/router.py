@@ -24,9 +24,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 import nbformat
-from nbclient.exceptions import CellExecutionError
 import logging
-import re
 from app.assignment.service import AssignmentService
 from app.auth.dependencies import get_current_user
 from app.exceptions import IncorrectFormatAssignmentException, SyntaxException
@@ -79,7 +77,7 @@ async def add_submission(
                                  number_of_attempts=0)
 
 
-
+    logger.info(f"Пользователь {current_user.email} загрузил решение для задания {assignment_id}")
 
 
 @router.post("/{assignment_id}/check")
@@ -111,7 +109,9 @@ async def check_submission(
     
     await SubmissionsService.update(model_id=submission_service.id,
                                     score=total_points,
-                                    number_of_attempts=submission_service.number_of_attempts + 1)     
+                                    number_of_attempts=submission_service.number_of_attempts + 1)  
+
+    logger.info(f"Пользователь {current_user.email} проверил решение задания {assignment_id}")   
     return {"message": "ok",
             "score": total_points}
                 
