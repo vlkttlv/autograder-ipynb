@@ -9,6 +9,8 @@ class Users(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    first_name: Mapped[str] = mapped_column(String)
+    last_name: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String(50), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
@@ -16,7 +18,10 @@ class Users(Base):
     # Связи с таблицами
     refresh_token = relationship("RefreshToken", back_populates="user")
     assignment = relationship("Assignments", back_populates="user")
-    # submission = relationship("Submissions", back_populates="user")
+    submission = relationship("Submissions", back_populates="user")
+
+    def __str__(self):
+        return f"Пользователь {self.email}"
 
 
 
