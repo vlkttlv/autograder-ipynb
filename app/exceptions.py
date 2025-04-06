@@ -48,3 +48,8 @@ class NotFoundTestsInAssignmentException(AuthograderException):
 class IncorrectRoleException(AuthograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Некоректная роль"
+
+
+class SyntaxException(AuthograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Синтаксическая ошибка"

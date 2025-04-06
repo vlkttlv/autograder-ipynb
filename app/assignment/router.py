@@ -106,7 +106,7 @@ async def delete_assignment(assignment_id: int, current_user: Users = Depends(ge
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
 
 
-@router.get("/{assignment_id}/stats", response_model=Optional[SubmissionsBaseSchema])
+@router.get("/{assignment_id}/stats")
 async def get_stats(assignment_id: int):
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
