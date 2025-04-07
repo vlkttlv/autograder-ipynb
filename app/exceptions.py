@@ -1,55 +1,74 @@
 from fastapi import HTTPException, status
 
 
-class AuthograderException(HTTPException):
+class AutograderException(HTTPException):
     status_code = 500
     detail = ""
 
     def __init__(self):
         super().__init__(status_code=self.status_code, detail=self.detail)
 
-class IncorrectEmailOrPasswordException(AuthograderException):
+class IncorrectEmailOrPasswordException(AutograderException):
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = "Неверная почта или пароль"
 
-class IncorrectTokenFormatException(AuthograderException):
+class IncorrectTokenFormatException(AutograderException):
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = "Неверный формат токена"
 
-class TokenAbsentException(AuthograderException):
+class TokenAbsentException(AutograderException):
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = "Токен отсутствует"
 
-class TokenExpiredException(AuthograderException):
+class TokenExpiredException(AutograderException):
     status_code = status.HTTP_401_UNAUTHORIZED
     detail = "Срок действия токена истек"
     
-class UserIsNotPresentException(AuthograderException):
+class UserIsNotPresentException(AutograderException):
     status_code = status.HTTP_401_UNAUTHORIZED
 
-class UserAlreadyExistsException(AuthograderException):
+class UserAlreadyExistsException(AutograderException):
     status_code = status.HTTP_409_CONFLICT
     detail = "Пользователь уже существует"
 
 
-class IncorrectFormatAssignmentException(AuthograderException):
+class IncorrectFormatAssignmentException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Файл должен быть в формате .ipynb"
     
 
-class NotFoundSolutionsInAssignmentException(AuthograderException):
+class NotFoundSolutionsInAssignmentException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Не найдены решения"
 
-class NotFoundTestsInAssignmentException(AuthograderException):
+class NotFoundTestsInAssignmentException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Не найдены скрытые тесты"
 
-class IncorrectRoleException(AuthograderException):
+class IncorrectRoleException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Некоректная роль"
 
 
-class SyntaxException(AuthograderException):
+class SyntaxException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Синтаксическая ошибка"
+
+
+class AssignmentNotFoundException(AutograderException):
+    status_code = status.HTTP_404_NOT_FOUND
+    detail = "Задание не найдено"
+
+
+class DeadlineException(AutograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Дедлайн сгорел или еще не начался"
+
+class SolutionNotFoundException(AutograderException):
+    status_code = status.HTTP_404_NOT_FOUND
+    detail = "Решение не найдено"
+
+
+class EndedAttemptsException(AutograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Попытки закончились"

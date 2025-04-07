@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from app.assignment.schemas import AssignmentResponseSchema, AssignmentUpdateSchema
 from app.assignment.utils import check_notebook, modify_notebook
 from app.assignment.service import AssignmentService
-from app.submissions.schemas import SubmissionsBaseSchema
 from app.submissions.service import SubmissionsService
 from app.auth.dependencies import check_tutor_role, get_current_user
 from app.exceptions import IncorrectFormatAssignmentException

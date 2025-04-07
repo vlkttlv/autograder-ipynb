@@ -1,5 +1,10 @@
+from datetime import datetime
 import re
 from nbclient.exceptions import CellExecutionError
+
+from app.assignment.service import AssignmentService
+from app.exceptions import AssignmentNotFoundException, DeadlineException, EndedAttemptsException, SolutionNotFoundException
+from app.submissions.service import SubmissionsService
 
 
 def grade_notebook(client, submission, tutor_notebook):
@@ -29,3 +34,35 @@ def grade_notebook(client, submission, tutor_notebook):
                         except CellExecutionError as ce:
                             pass
     return total_points
+
+
+async def check_date_and_attempts_submission(assignment_id, current_user):
+    now_datetime = datetime.now()
+    assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+
+    if not assignment:
+        raise AssignmentNotFoundException
+
+    if assignment.due_date < now_datetime.date() or assignment.start_date > now_datetime.date():
+        raise DeadlineException
+
+    submission_service = await SubmissionsService.find_one_or_none(user_id=current_user.id,
+                                                                   assignment_id=assignment_id)
+    if not submission_service:
+        raise SolutionNotFoundException
+    
+    if submission_service.number_of_attempts == assignment.number_of_attempts:
+        raise EndedAttemptsException
+    
+    return submission_service
+
+
+async def check_date_submission(assignment_id):
+    now_datetime = datetime.now()
+    assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+
+    if not assignment:
+        raise AssignmentNotFoundException
+
+    if assignment.due_date < now_datetime.date() or assignment.start_date > now_datetime.date():
+        raise DeadlineException
