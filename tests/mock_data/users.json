@@ -1,0 +1,23 @@
+[
+    {
+        "email": "student@example.com",
+        "first_name": "Студент",
+        "last_name": "Тестовый",
+        "role": "STUDENT",
+        "hashed_password": "$2b$12$DqOZCGNnAf5xULdJGmcOquaZdbPyqcEgpsijAn1zJH0kssWDgAWmC"
+    },
+    {
+        "email": "tutor@example.com",
+        "first_name": "Преподаватель",
+        "last_name": "Тестовый",
+        "role": "TUTOR",
+        "hashed_password": "$2b$12$1tiCbkplD9038wNP634SY.9cXWnBDuFhRQMYQGhpo184DdsaRgXze"
+    },
+        {
+        "email": "admin@example.com",
+        "first_name": "Админ",
+        "last_name": "Тестовый",
+        "role": "ADMIN",
+        "hashed_password": "$2b$12$8iu.JJRrgxuw1G87E11rZ.UVyoEGwDCOiuVq2BFEGzDaw3vWOYjlq"
+    }
+]
