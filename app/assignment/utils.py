@@ -1,3 +1,4 @@
+import re
 from app.exceptions import (NotFoundSolutionsInAssignmentException,
                             NotFoundTestsInAssignmentException)
 
@@ -6,19 +7,20 @@ def check_notebook(notebook):
     """Проверка блокнота"""
 
     # Переменные для отслеживания наличия нужных строк
-    solution_found = False
-    tests_found = False
+    solution_found = True
+    tests_found = True
 
     for cell in notebook.cells:
         if cell.cell_type == 'code':
             # Проверяем наличие строк в коде
-            if "### BEGIN SOLUTION" in cell.source and "### END SOLUTION" in cell.source:
-                solution_found = True
+            if "def" in cell.source:
+                if "### BEGIN SOLUTION" not in cell.source and "### END SOLUTION" not in cell.source:
+                    solution_found = False
 
             # Проверка на наличие строк для тестов
             if "# Tests " in cell.source and " points." in cell.source:
-                if "### BEGIN HIDDEN TESTS" in cell.source and "### END HIDDEN TESTS" in cell.source:
-                    tests_found = True
+                if "### BEGIN HIDDEN TESTS" not in cell.source and "### END HIDDEN TESTS" not in cell.source:
+                    tests_found = False
 
     # Проверка, были ли обнаружены нужные блоки
     if not solution_found:
@@ -58,3 +60,18 @@ def modify_notebook(notebook):
                 cell.source = '\n'.join(source_lines)
 
     return notebook
+
+
+def get_total_points_from_notebook(client, submission):
+    total_points = 0
+    # Выполняем каждую ячейку отдельно
+    with client.setup_kernel() as kernel:
+        for index, cell in enumerate(submission.cells):
+            if cell.cell_type == 'code':  # Проверяем, что это кодовая ячейка
+                if "# Tests " in cell.source and " points." in cell.source:
+                    points = 0
+                    match = re.search(r"# Tests (\d+) points", cell.source)
+                    if match:
+                        points = int(match.group(1))
+                    total_points += points
+    return total_points

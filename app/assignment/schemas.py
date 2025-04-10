@@ -12,6 +12,7 @@ class AssignmentBaseSchema(BaseModel):
 
 class AssignmentResponseSchema(AssignmentBaseSchema):
     user_id: int
+    grade: int
 
 
 class AssignmentUpdateSchema(AssignmentBaseSchema):

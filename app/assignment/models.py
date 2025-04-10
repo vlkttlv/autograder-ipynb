@@ -15,6 +15,7 @@ class Assignments(Base):
     due_date: Mapped[date] = mapped_column(Date)
     due_time: Mapped[time] = mapped_column(Time)
     number_of_attempts: Mapped[int]
+    grade: Mapped[int]
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
 
     # Связи с другими таблицами

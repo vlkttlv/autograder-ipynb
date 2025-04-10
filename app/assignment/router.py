@@ -1,9 +1,10 @@
 from datetime import date, time
 from typing import List, Optional
+from nbclient import NotebookClient
 import nbformat
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from app.assignment.schemas import AssignmentResponseSchema, AssignmentUpdateSchema
-from app.assignment.utils import check_notebook, modify_notebook
+from app.assignment.utils import check_notebook, get_total_points_from_notebook, modify_notebook
 from app.assignment.service import AssignmentService
 from app.submissions.service import SubmissionsService
 from app.auth.dependencies import check_tutor_role, get_current_user
@@ -59,12 +60,15 @@ async def add_assighment(
         raise HTTPException(status_code=400, detail="Ошибка при декодировании файла .ipynb") from e
 
     check_notebook(notebook) # проверка, есть ли нужные блоки в файле
+    client = NotebookClient(notebook)
+    grade = get_total_points_from_notebook(client, notebook)
     assignment = await AssignmentService.add(name=name,
                                         start_date=start_date,
                                         start_time=start_time,
                                         due_date=due_date,
                                         due_time=due_time,
                                         number_of_attempts=number_of_attempts,
+                                        grade=grade,
                                         user_id=current_user.id)
 
     with open(f'app\\assignment\\original_assignments\\{assignment}.ipynb',
