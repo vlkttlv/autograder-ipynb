@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from pathlib import Path
 from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 import nbformat
 import logging
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import check_student_role, get_current_user
 from app.exceptions import IncorrectFormatAssignmentException, SolutionNotFoundException, SyntaxException
 from app.submissions.service import SubmissionsService
 from app.submissions.utils import (check_date_and_attempts_submission,
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 configure_logging()
 
 
-router = APIRouter(prefix="/submissions", tags=['Submissions'])
+router = APIRouter(prefix="/submissions", tags=['Submissions'], dependencies=[Depends(check_student_role)])
 
 
 @router.post("/{assignment_id}", status_code=201)
@@ -53,8 +55,22 @@ async def add_submission(
                                  number_of_attempts=0)
 
     logger.info("Пользователь %s загрузил решение для задания %s", current_user.email, assignment_id)
-    
 
+
+@router.get("/{assignment_id}/download",
+            dependencies=[Depends(get_current_user)])
+async def download_assignment(
+    assignment_id: int
+):
+    """Загрузка задания"""
+
+    await check_date_submission(assignment_id)
+    file_path = Path(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
+    return FileResponse(file_path,
+                        media_type='application/x-jupyter-notebook',
+                        filename=f"{assignment_id}.ipynb")
+
+                
 @router.post("/{assignment_id}/check")
 async def check_submission(
     assignment_id: int,
@@ -83,7 +99,6 @@ async def check_submission(
 
     return {"message": "ok",
             "score": total_points}
-                
 
 @router.get("/")
 async def get_submissions(current_user: Users = Depends(get_current_user)):

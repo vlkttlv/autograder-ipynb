@@ -2,6 +2,7 @@ from datetime import date, time
 from typing import List, Optional
 from nbclient import NotebookClient
 import nbformat
+import os
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from app.assignment.schemas import AssignmentResponseSchema, AssignmentUpdateSchema
 from app.assignment.utils import check_notebook, get_total_points_from_notebook, modify_notebook
@@ -91,7 +92,7 @@ async def get_assignment(assignment_id: int, current_user: Users = Depends(get_c
     """Получение информации о задании по ID"""
     return await AssignmentService.find_one_or_none(id=assignment_id, user_id=current_user.id)
 
-@router.put("/{assignment_id}")
+@router.patch("/{assignment_id}")
 async def update_assignment(assignment_id: int, updated_data: AssignmentUpdateSchema):
     """Обновление задания"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
@@ -107,6 +108,8 @@ async def delete_assignment(assignment_id: int, current_user: Users = Depends(ge
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
+    os.remove(f"app\assignment\modified_assignments\{assignment_id}.ipynb")
+    os.remove(f"app\assignment\original_assignments\{assignment_id}.ipynb")
 
 
 @router.get("/{assignment_id}/stats")

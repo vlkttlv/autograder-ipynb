@@ -60,5 +60,10 @@ async def get_role(current_user = Depends(get_current_user)):
     return current_user.role
 
 async def check_tutor_role(current_role = Depends(get_role)):
-    if current_role != "TUTOR":
+    if current_role == "STUDENT":
+        raise IncorrectRoleException
+    
+
+async def check_student_role(current_role = Depends(get_role)):
+    if current_role == "TUTOR":
         raise IncorrectRoleException

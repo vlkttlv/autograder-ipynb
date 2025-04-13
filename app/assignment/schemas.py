@@ -2,12 +2,12 @@ from datetime import date, time
 from pydantic import BaseModel, Field
 
 class AssignmentBaseSchema(BaseModel):
-    name: str
-    start_date: date
-    start_time: time
-    due_date: date
-    due_time: time
-    number_of_attempts: int = Field(..., ge=1)
+    name: str = None
+    start_date: date = None
+    start_time: time = None
+    due_date: date = None
+    due_time: time = None
+    number_of_attempts: int = Field(None, ge=1)
 
 
 class AssignmentResponseSchema(AssignmentBaseSchema):
