@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     TEST_DB_USER: str
     TEST_DB_PASS: str
     TEST_DB_NAME: str
+    
 
     SECRET_KEY: str
     ALGORITHM: str

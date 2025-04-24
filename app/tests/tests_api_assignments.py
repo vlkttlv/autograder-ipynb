@@ -1,15 +1,16 @@
 import pytest
 from httpx import AsyncClient
+from app.db import DATABASE_URL
 
 @pytest.mark.asyncio(scope="session")
-async def test_add_assignment(auth_tutor_ac: AsyncClient):
+async def test_add_assignment(auth_tutor_ac: AsyncClient, set_temporary_dirs):
     wrong_assignment_1 = "app/tests/mock_data/mock_assignments/assig_wrong_1.ipynb"
     wrong_assignment_2 = "app/tests/mock_data/mock_assignments/assig_wrong_2.ipynb"
     assignment = "app/tests/mock_data/mock_assignments/assig2.ipynb"
 
     with open(wrong_assignment_1, "rb") as f:
         response = await auth_tutor_ac.post(
-            "http://127.0.0.1:8000/assignments/test",
+            "/assignments/test",
             files={"assignment_file": (wrong_assignment_1, f, "application/x-ipynb+json")},
             timeout=30.0
         )
@@ -19,7 +20,7 @@ async def test_add_assignment(auth_tutor_ac: AsyncClient):
 
     with open(wrong_assignment_2, "rb") as f:
         response = await auth_tutor_ac.post(
-            "http://127.0.0.1:8000/assignments/test",
+            "/assignments/test",
             files={"assignment_file": (wrong_assignment_2, f, "application/x-ipynb+json")},
             timeout=30.0
         )
@@ -30,12 +31,12 @@ async def test_add_assignment(auth_tutor_ac: AsyncClient):
 
     with open(assignment, "rb") as f:
         response = await auth_tutor_ac.post(
-            "http://127.0.0.1:8000/assignments/",
+            "/assignments/",
             params={
                 "name": "Test Assignment",
                 "number_of_attempts": 3,
-                "start_date": "2025-10-01",
-                "due_date": "2025-10-31",
+                "start_date": "2025-01-01",
+                "due_date": "2025-12-31",
                 "start_time": "10:00",
                 "due_time": "20:00",
             },
@@ -47,12 +48,12 @@ async def test_add_assignment(auth_tutor_ac: AsyncClient):
 
     with open(assignment, "rb") as f:
         response = await auth_tutor_ac.post(
-            "http://127.0.0.1:8000/assignments/",
+            "/assignments/",
             params={
                 "name": "Test Assignment",
                 "number_of_attempts": 3,
-                "start_date": "2025-10-01",
-                "due_date": "2025-10-31",
+                "start_date": "2025-01-01",
+                "due_date": "2025-12-31",
                 "start_time": "10:00",
                 "due_time": "20:00",
             },
@@ -64,12 +65,12 @@ async def test_add_assignment(auth_tutor_ac: AsyncClient):
 
 @pytest.mark.asyncio(scope="session")
 async def test_get_assighment(auth_tutor_ac: AsyncClient):
-    response = await auth_tutor_ac.get("http://127.0.0.1:8000/assignments/1")
+    response = await auth_tutor_ac.get("/assignments/1")
     assert response.status_code == 200
     assert response.json() == {
                                 "name": "Test Assignment",
-                                "start_date": "2025-10-01",
-                                "due_date": "2025-10-31",
+                                "start_date": "2025-01-01",
+                                "due_date": "2025-12-31",
                                 "start_time": "10:00:00",
                                 "due_time": "20:00:00",
                                 "number_of_attempts": 3,
@@ -77,31 +78,31 @@ async def test_get_assighment(auth_tutor_ac: AsyncClient):
                                 "grade": 15
                                 }
 
-    response = await auth_tutor_ac.get("http://127.0.0.1:8000/assignments/2")
+    response = await auth_tutor_ac.get("/assignments/3")
     assert response.json() == None
 
 @pytest.mark.asyncio(scope="session")
 async def test_get_assighments(auth_tutor_ac: AsyncClient):
-    response = await auth_tutor_ac.get("http://127.0.0.1:8000/assignments/")
+    response = await auth_tutor_ac.get("/assignments/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio(scope="session")
 async def test_update_assighment(auth_tutor_ac: AsyncClient):
-    response = await auth_tutor_ac.patch("http://127.0.0.1:8000/assignments/5",
+    response = await auth_tutor_ac.patch("/assignments/5",
                                    json={"name": "New Name"})
     assert response.status_code == 404
-    response = await auth_tutor_ac.patch("http://127.0.0.1:8000/assignments/1",
+    response = await auth_tutor_ac.patch("/assignments/1",
                                 json={"name": "New Name"})
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio(scope="session")
 async def test_delete_assighment(auth_tutor_ac: AsyncClient):
-    response = await auth_tutor_ac.delete("http://127.0.0.1:8000/assignments/1")
+    response = await auth_tutor_ac.delete("/assignments/1")
     assert response.status_code == 204
-    response = await auth_tutor_ac.delete("http://127.0.0.1:8000/assignments/10")
+    response = await auth_tutor_ac.delete("/assignments/10")
     assert response.status_code == 404
 
 

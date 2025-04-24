@@ -12,10 +12,13 @@ from app.auth.dependencies import check_tutor_role, get_current_user
 from app.exceptions import IncorrectFormatAssignmentException
 from app.user.models import Users
 
-
 router = APIRouter(prefix="/assignments",
                    tags=['Assignments'],
                    dependencies=[Depends(check_tutor_role)])
+
+
+ORIGINAL_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_ORIGINAL_DIR", "app\\assignment\\original_assignments")
+MODIFIED_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_MODIFIED_DIR", "app\\assignment\\modified_assignments")
 
 @router.post("/test")
 async def test(assignment_file: UploadFile = File(...)):
@@ -72,12 +75,12 @@ async def add_assighment(
                                         grade=grade,
                                         user_id=current_user.id)
 
-    with open(f'app\\assignment\\original_assignments\\{assignment}.ipynb',
+    with open(os.path.join(ORIGINAL_ASSIGNMENTS_PATH, f"{assignment}.ipynb"),
               'w', encoding='utf-8') as f:
         nbformat.write(notebook, f)
 
     modified_notebook = modify_notebook(notebook) # редактируем файл
-    with open(f'app\\assignment\\modified_assignments\\{assignment}.ipynb',
+    with open(os.path.join(MODIFIED_ASSIGNMENTS_PATH, f"{assignment}.ipynb"),
               'w', encoding='utf-8') as f:
         nbformat.write(modified_notebook, f)
 
@@ -108,8 +111,8 @@ async def delete_assignment(assignment_id: int, current_user: Users = Depends(ge
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
-    os.remove(f"app\assignment\modified_assignments\{assignment_id}.ipynb")
-    os.remove(f"app\assignment\original_assignments\{assignment_id}.ipynb")
+    os.remove(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
+    os.remove(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
 
 
 @router.get("/{assignment_id}/stats")
