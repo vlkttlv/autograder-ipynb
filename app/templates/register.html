@@ -41,28 +41,38 @@
 
   <script>
     const form = document.getElementById('registration-form');
-    
+  
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const formData = new FormData(form);
-      
+  
+      const formData = {
+        email: form.email.value,
+        first_name: form.first_name.value,
+        last_name: form.last_name.value,
+        password: form.password.value,
+      };
+  
       try {
-        const response = await fetch('http://localhost:5000/register', {
+        const response = await fetch('http://127.0.0.1:8000/auth/register', {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
         });
+  
         const data = await response.json();
-        
-        if (data.success) {
-          window.location.href = 'login.html'; // Redirect to login page on success
+  
+        if (response.ok) {
+          window.location.href = 'login';
         } else {
-          alert('Registration failed');
+          alert(data.detail || 'Ошибка при регистрации');
         }
       } catch (error) {
-        alert('Error during registration');
+        console.error('Ошибка:', error);
+        alert('Ошибка при подключении к серверу');
       }
     });
-  </script>
+  </script>  
 </body>
 </html>

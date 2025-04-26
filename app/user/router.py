@@ -9,7 +9,7 @@ from app.user.models import Users
 from app.user.schemas import (UserBaseSchema,
                               UserRegisterSchema,
                               UserResponseSchema,
-                              UserRole)
+                              UserRole, UserTestRegisterSchemas)
 from app.auth.auth import (authenticate_user,
                             create_access_token,
                             create_refresh_token,
@@ -36,8 +36,10 @@ async def register_user(user_data: UserRegisterSchema):
         raise UserAlreadyExistsException
     hashed_password = get_password_hash(user_data.password)
     await UsersService.add(email=user_data.email,
-                       name=user_data.name,
-                       hashed_password=hashed_password)
+                       first_name=user_data.first_name,
+                       last_name=user_data.last_name,
+                       hashed_password=hashed_password,
+                       role=UserRole.STUDENT)
     logger.info("Пользователь зарегистрировался")
     return {"message": "Пользователь успешно зарегистрирован"}
 
@@ -66,16 +68,17 @@ async def logout_user(response: Response, current_user = Depends(get_current_use
 async def create_test_users():
     """Создание тестовых пользователей"""
     users_data = [
-        UserRegisterSchema(email="student@example.com",password="password", role=UserRole.STUDENT),
-        UserRegisterSchema(email="tutor@example.com", password="password", role=UserRole.TUTOR),
-        UserRegisterSchema(email="admin@example.com", password="password", role=UserRole.ADMIN),
+        UserTestRegisterSchemas(email="student@example.com",password="password", first_name='Студент', last_name='Тестовый', role=UserRole.STUDENT),
+        UserTestRegisterSchemas(email="tutor@example.com", password="password", first_name='Преподаватель', last_name='Тестовый', role=UserRole.TUTOR),
+        UserTestRegisterSchemas(email="admin@example.com", password="password", first_name='Администратор', last_name='Тестовый', role=UserRole.ADMIN),
     ]
     
     for user_data in users_data:
         hashed_password = get_password_hash(user_data.password)
-
         await UsersService.add(email=user_data.email,
                                hashed_password=hashed_password,
+                               first_name=user_data.first_name,
+                               last_name=user_data.last_name,
                                role=user_data.role)
     logger.info("Были созданы тестовые пользователи")
     return {"message": "Тестовые пользователи успешно созданы"}

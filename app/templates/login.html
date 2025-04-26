@@ -32,30 +32,55 @@
     </div>
   </div>
 
-  <script>
-    const form = document.getElementById('login-form');
-    
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+<script>
+  const form = document.getElementById('login-form');
 
-      const formData = new FormData(form);
-      
-      try {
-        const response = await fetch('http://localhost:5000/login', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-          window.location.href = 'dashboard.html'; // Redirect to the dashboard on success
-        } else {
-          alert('Invalid credentials');
-        }
-      } catch (error) {
-        alert('Error during login');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = {
+      email: form.email.value,
+      password: form.password.value,
+    };
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData),
+        credentials: 'include' // обязательно, чтобы cookie пришли
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Сохраняем refresh_token
+        localStorage.setItem('refresh_token', data.refresh_token);
+
+        // Декодируем access_token, чтобы вытащить роль
+        const decodedToken = jwt_decode(data.access_token);
+        const userRole = decodedToken.role;
+
+        if (userRole === 'STUDENT') {
+          window.location.href = 'student-home';
+        } else if (userRole === 'TUTOR') {
+          window.location.href = 'http://127.0.0.1:8000/pages/tutor-home';
+        } 
+        // else {
+        //   alert('Неизвестная роль пользователя');
+        // }
+      } else {
+        alert(data.detail || 'Ошибка при авторизации');
       }
-    });
-  </script>
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert('Ошибка при подключении к серверу');
+    }
+  });
+</script>
+
 </body>
 </html>

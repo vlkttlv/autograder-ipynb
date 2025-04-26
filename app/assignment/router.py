@@ -1,5 +1,7 @@
 from datetime import date, time
+from pathlib import Path
 from typing import List, Optional
+from fastapi.responses import FileResponse
 from nbclient import NotebookClient
 import nbformat
 import os
@@ -94,6 +96,25 @@ async def get_assignments(current_user: Users = Depends(get_current_user)):
 async def get_assignment(assignment_id: int, current_user: Users = Depends(get_current_user)):
     """Получение информации о задании по ID"""
     return await AssignmentService.find_one_or_none(id=assignment_id, user_id=current_user.id)
+
+
+@router.get("/original/{assignment_id}")
+async def get_original_assignment(assignment_id: int):
+    """Получение оригинального задания"""
+    file_path = Path(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
+    return FileResponse(file_path,
+                        media_type='application/x-jupyter-notebook',
+                        filename=f"{assignment_id}.ipynb")
+
+
+@router.get("/modified/{assignment_id}")
+async def get_modified_assignment(assignment_id: int):
+    """Получение оригинального задания"""
+    file_path = Path(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
+    return FileResponse(file_path,
+                        media_type='application/x-jupyter-notebook',
+                        filename=f"{assignment_id}.ipynb")
+
 
 @router.patch("/{assignment_id}")
 async def update_assignment(assignment_id: int, updated_data: AssignmentUpdateSchema):

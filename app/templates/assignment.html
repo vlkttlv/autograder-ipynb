@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ assignment.name or 'Задание' }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-white shadow p-4 flex justify-between items-center">
+    <div class="text-2xl font-bold text-blue-700">NotebookGrader</div>
+    <div class="flex items-center space-x-6">
+      <a href="/pages/tutor-home" class="text-gray-700 hover:text-blue-600">Домой</a>
+      <form action="/auth/logout" method="post">
+        <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Выйти</button>
+      </form>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded shadow">
+    <h1 class="text-3xl font-bold mb-4 text-gray-800">{{ assignment.name or 'Без названия' }}</h1>
+
+    <div class="space-y-3 text-gray-700">
+      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time }}</p>
+      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time }}</p>
+      <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
+      <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
+    </div>
+
+      <br><a href="/assignments/original/{{ assignment.id }}">
+         Скачать оригинальное задание
+      </a><br>
+    
+      <a href="/assignments/modified/{{ assignment.id }}">
+        Скачать модифицированное задание
+      </a><br>
+
+    <div class="mt-8">
+      <a href="/pages/tutor-home" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
+        Вернуться к списку заданий
+      </a>
+    </div>
+  </main>
+</body>
+</html>

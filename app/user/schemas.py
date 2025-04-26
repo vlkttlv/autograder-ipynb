@@ -11,16 +11,20 @@ class UserRole(str, Enum):
 class UserBaseSchema(BaseModel):
     email: EmailStr = Field(..., description="Электронная почта")
     password: str = Field(..., min_length=8, max_length=50, description="Пароль, от 8 до 50 знаков")
-    first_name: str
-    last_name: str
     
-
-class UserRegisterSchema(UserBaseSchema):
+class UserLoginSchema(UserBaseSchema):
     pass
 
 
+class UserRegisterSchema(UserBaseSchema):
+    first_name: str
+    last_name: str
 
-class UserResponseSchema(BaseModel):
+
+class UserTestRegisterSchemas(UserRegisterSchema):
+    role: UserRole
+
+    
+class UserResponseSchema(UserRegisterSchema):
     id: int
-    email: EmailStr
     role: UserRole
