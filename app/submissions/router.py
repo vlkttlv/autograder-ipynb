@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 configure_logging()
 
 
-router = APIRouter(prefix="/submissions", tags=['Submissions'], dependencies=[Depends(check_student_role)])
+router = APIRouter(prefix="/submissions", tags=['Submissions'])
 
 
-@router.post("/{assignment_id}", status_code=201)
+@router.post("/{assignment_id}", status_code=201, dependencies=[Depends(check_student_role)])
 async def add_submission(
     assignment_id: int,
     submission_file: UploadFile = File(...),
@@ -48,17 +48,18 @@ async def add_submission(
     with open(f'app\\submissions\\student_submissions\\{current_user.id}_{assignment_id}.ipynb',
               'w', encoding='utf-8') as f:
         nbformat.write(notebook, f)
-
-    await SubmissionsService.add(user_id=current_user.id,
-                                 assignment_id=assignment_id,
-                                 score=0,
-                                 number_of_attempts=0)
+    res = await SubmissionsService.find_one_or_none(user_id=current_user.id, assignment_id=assignment_id)
+    if res is None:
+        await SubmissionsService.add(user_id=current_user.id,
+                                    assignment_id=assignment_id,
+                                    score=0,
+                                    number_of_attempts=0)
 
     logger.info("Пользователь %s загрузил решение для задания %s", current_user.email, assignment_id)
 
 
 @router.get("/{assignment_id}/download",
-            dependencies=[Depends(get_current_user)])
+            dependencies=[Depends(check_student_role)])
 async def download_assignment(
     assignment_id: int
 ):
@@ -71,7 +72,7 @@ async def download_assignment(
                         filename=f"{assignment_id}.ipynb")
 
                 
-@router.post("/{assignment_id}/check")
+@router.post("/{assignment_id}/check", dependencies=[Depends(check_student_role)])
 async def check_submission(
     assignment_id: int,
     current_user: Users = Depends(get_current_user)
@@ -100,13 +101,13 @@ async def check_submission(
     return {"message": "ok",
             "score": total_points}
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(check_student_role)])
 async def get_submissions(current_user: Users = Depends(get_current_user)):
     """Получение списка всех решений"""
     return await SubmissionsService.find_all(user_id=current_user.id)
 
 
-@router.get("/{submission_id}")
+@router.get("/{submission_id}", dependencies=[Depends(check_student_role)])
 async def get_submission_by_id(submission_id: int, current_user: Users = Depends(get_current_user)):
     """Получение конкретного решения по ID"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=current_user.id)
@@ -114,8 +115,30 @@ async def get_submission_by_id(submission_id: int, current_user: Users = Depends
         raise SolutionNotFoundException
     return submission
 
+@router.get("/{submission_id}/get", dependencies=[Depends(get_current_user)])
+async def download_submission(submission_id: int, user_id: int):
+    """Скачивание файла с решением"""
 
-@router.delete("/{submission_id}")
+    # Проверяем наличие решения в базе
+    submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=user_id)
+    if not submission:
+        raise SolutionNotFoundException
+
+    # Формируем путь к файлу
+    file_path = Path(f"app/submissions/student_submissions/{user_id}_{submission.assignment_id}.ipynb")
+
+    # Проверяем, что файл существует
+    if not file_path.exists():
+        raise SolutionNotFoundException
+
+    return FileResponse(
+        path=file_path,
+        media_type='application/x-jupyter-notebook',
+        filename=f"{submission.assignment_id}_submission.ipynb"
+    )
+
+
+@router.delete("/{submission_id}", dependencies=[Depends(check_student_role)])
 async def delete_submission(submission_id: int, current_user: Users = Depends(get_current_user)):
     """Удаление решения по ID"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=current_user.id)

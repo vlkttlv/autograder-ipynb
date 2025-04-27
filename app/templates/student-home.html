@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Главная</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/tutor-home.css') }}">
+</head>
+<body class="body-base">
+  <nav class="nav-base">
+    <div class="nav-title">NotebookGrader</div>
+    <div class="nav-actions">
+      <form action="/auth/logout" method="post">
+        <button class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
+  <main class="main-container">
+    <div class="main-header">
+      <h1 class="main-title">Мои решения</h1>
+    </div>
+    {% if submissions %}
+      <table class="assignment-table">
+        <thead>
+          <tr class="table-header">
+            <th class="table-cell">Задание</th>
+            <th class="table-cell">Затрачено попыток</th>
+            <th class="table-cell">Оценка</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in submissions %}
+          <tr class="table-row">
+            <td class="table-cell">
+              <a href="/pages/student/assignments/{{ s.assignment.id }}" class="assignment-link">{{ s.assignment.name }}</a>
+            </td>
+            <td class="table-cell">{{ s.number_of_attempts }}</td>
+            <td class="table-cell">{{ s.grade }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="no-assignments">Пока заданий нет.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

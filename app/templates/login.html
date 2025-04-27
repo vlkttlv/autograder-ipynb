@@ -65,7 +65,7 @@
         const userRole = decodedToken.role;
 
         if (userRole === 'STUDENT') {
-          window.location.href = 'student-home';
+          window.location.href = 'http://127.0.0.1:8000/pages/student-home';
         } else if (userRole === 'TUTOR') {
           window.location.href = 'http://127.0.0.1:8000/pages/tutor-home';
         } 

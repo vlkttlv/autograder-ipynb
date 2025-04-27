@@ -1,11 +1,11 @@
+import os
 from datetime import date, time
 from pathlib import Path
 from typing import List, Optional
 from fastapi.responses import FileResponse
 from nbclient import NotebookClient
 import nbformat
-import os
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from app.assignment.schemas import AssignmentResponseSchema, AssignmentUpdateSchema
 from app.assignment.utils import check_notebook, get_total_points_from_notebook, modify_notebook
 from app.assignment.service import AssignmentService
@@ -15,8 +15,7 @@ from app.exceptions import IncorrectFormatAssignmentException
 from app.user.models import Users
 
 router = APIRouter(prefix="/assignments",
-                   tags=['Assignments'],
-                   dependencies=[Depends(check_tutor_role)])
+                   tags=['Assignments'])
 
 
 ORIGINAL_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_ORIGINAL_DIR", "app\\assignment\\original_assignments")
@@ -42,14 +41,14 @@ async def test(assignment_file: UploadFile = File(...)):
 
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, dependencies=[Depends(check_tutor_role)])
 async def add_assighment(
-    name: str = Query(description="Название теста"),
-    number_of_attempts: int = Query(description="Максимальное количество попыток", ge=1),
-    start_date: date = Query(default=date.today(), description="Дата открытия теста"),
-    start_time: time = Query(default=time, description="Время открытия теста"),
-    due_date: date = Query(default=date.today(), description="Дата закрытия теста"),
-    due_time: time = Query(default=time, description="Время закрытия теста"),
+    name: str = Form(description="Название теста"),
+    number_of_attempts: int = Form(description="Максимальное количество попыток", ge=1),
+    start_date: date = Form(default=date.today(), description="Дата открытия теста"),
+    start_time: time = Form(default=time, description="Время открытия теста"),
+    due_date: date = Form(default=date.today(), description="Дата закрытия теста"),
+    due_time: time = Form(default=time, description="Время закрытия теста"),
     assignment_file: UploadFile = File(...),
     current_user: Users = Depends(get_current_user)
 ):
@@ -87,7 +86,7 @@ async def add_assighment(
         nbformat.write(modified_notebook, f)
 
 
-@router.get("/", response_model=List[AssignmentResponseSchema])
+@router.get("/", response_model=List[AssignmentResponseSchema], dependencies=[Depends(check_tutor_role)])
 async def get_assignments(current_user: Users = Depends(get_current_user)):
     """Получение списка всех заданий преподавателя"""
     return await AssignmentService.find_all(user_id=current_user.id)
@@ -95,7 +94,7 @@ async def get_assignments(current_user: Users = Depends(get_current_user)):
 @router.get("/{assignment_id}", response_model=Optional[AssignmentResponseSchema])
 async def get_assignment(assignment_id: int, current_user: Users = Depends(get_current_user)):
     """Получение информации о задании по ID"""
-    return await AssignmentService.find_one_or_none(id=assignment_id, user_id=current_user.id)
+    return await AssignmentService.find_one_or_none(id=assignment_id)
 
 
 @router.get("/original/{assignment_id}")
@@ -124,6 +123,31 @@ async def update_assignment(assignment_id: int, updated_data: AssignmentUpdateSc
         raise HTTPException(status_code=404, detail="Задание не найдено")
     await AssignmentService.update_assignment(assignment_id, updated_data)
 
+@router.post("/{assignment_id}/file/update")
+async def update_file_assignment(assignment_id: int,
+                                 assignment_file: UploadFile = File(...),):
+    
+    filename = assignment_file.filename
+    if not filename.endswith(".ipynb"):
+        raise IncorrectFormatAssignmentException
+
+    content = await assignment_file.read()
+
+    try:
+        notebook = nbformat.reads(content.decode('utf-8'), as_version=4)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Ошибка при декодировании файла .ipynb") from e
+
+    check_notebook(notebook) # проверка, есть ли нужные блоки в файле
+
+    with open(os.path.join(ORIGINAL_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"),
+              'w', encoding='utf-8') as f:
+        nbformat.write(notebook, f)
+
+    modified_notebook = modify_notebook(notebook) # редактируем файл
+    with open(os.path.join(MODIFIED_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"),
+              'w', encoding='utf-8') as f:
+        nbformat.write(modified_notebook, f)
 
 @router.delete("/{assignment_id}", status_code=204)
 async def delete_assignment(assignment_id: int, current_user: Users = Depends(get_current_user)):
@@ -141,5 +165,6 @@ async def get_stats(assignment_id: int):
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
-    stats = await SubmissionsService.find_all(assignment_id=assignment_id)
+    stats = await SubmissionsService.get_statistics(assignment_id=assignment_id)
     return stats
+

@@ -16,12 +16,20 @@ def check_notebook(notebook):
             if "def" in cell.source:
                 if "### BEGIN SOLUTION" not in cell.source and "### END SOLUTION" not in cell.source:
                     solution_found = False
+                if "### BEGIN SOLUTION" not in cell.source and "### END SOLUTION" in cell.source:
+                    solution_found = False
+                if "### BEGIN SOLUTION" in cell.source and "### END SOLUTION" not in cell.source:
+                    solution_found = False
 
             # Проверка на наличие строк для тестов
             if "# Tests " in cell.source and " points." in cell.source:
                 if "### BEGIN HIDDEN TESTS" not in cell.source and "### END HIDDEN TESTS" not in cell.source:
                     tests_found = False
-
+                if "### BEGIN HIDDEN TESTS" in cell.source and "### END HIDDEN TESTS" not in cell.source:
+                    tests_found = False
+                if "### BEGIN HIDDEN TESTS" not in cell.source and "### END HIDDEN TESTS" in cell.source:
+                    tests_found = False
+                    
     # Проверка, были ли обнаружены нужные блоки
     if not solution_found:
         raise NotFoundSolutionsInAssignmentException

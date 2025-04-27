@@ -1,53 +1,62 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Статистика</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Статистика: {{ assignment.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/stats.css') }}">
+    <script src="/static/js/script.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <nav class="bg-white shadow p-4 flex justify-between items-center">
-    <div class="text-2xl font-bold text-blue-700">NotebookGrader</div>
-    <div class="flex items-center space-x-6">
-      <form action="/auth/logout" method="post">
-        <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Выйти</button>
-      </form>
-    </div>
-  </nav>
+<body class="body-base">
+    <nav class="nav-base">
+        <div class="nav-title">NotebookGrader</div>
+        <div class="nav-actions">
+            <a href="/pages/tutor-home" class="home-link">Домой</a>
+            <form action="/auth/logout" method="post">
+                <button class="logout-button">Выйти</button>
+            </form>
+        </div>
+    </nav>
 
+    <main class="main-container">
+        <h1 class="main-title">Статистика по заданию: {{ assignment.name }}</h1>
 
-  <main class="max-w-5xl mx-auto mt-10 p-6 bg-white rounded shadow">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Мои задания</h1>
-      <a href="/assignments/create" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Новое задание</a>
-    </div>
+        {% if statistics %}
+            <table class="stats-table">
+                <thead>
+                    <tr class="table-header">
+                        <th class="table-cell">Пользователь</th>
+                        <th class="table-cell">Кол-во попыток</th>
+                        <th class="table-cell">Баллы</th>
+                        <th class="table-cell"> </th>
+                    </tr>
+                </thead>
+                <tbody>
+                  {% for stat in statistics %}
+                  <tr class="table-row">
+                      <td class="table-cell">{{ stat.user.first_name }} {{ stat.user.last_name }} {{ stat.user.email }}</td>
+                      <td class="table-cell">{{ stat.number_of_attempts }}</td>
+                      <td class="table-cell">{{ stat.score }}</td>
+                      <td class="table-cell">
+                          <a href="/submissions/{{ stat.id }}/get?user_id={{ stat.user_id }}"
+                             class="download-link"
+                             download>
+                              Скачать решение
+                          </a>
+                      </td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+            </table>
+        {% else %}
+            <p class="no-submissions">Нет отправленных решений</p>
+        {% endif %}
 
-    {% if assignments %}
-      <table class="w-full table-auto border">
-        <thead>
-          <tr class="bg-gray-200 text-left">
-            <th class="p-2">Название</th>
-            <th class="p-2">Дата открытия</th>
-            <th class="p-2">Дата сдачи</th>
-            <th class="p-2">Максимальный балл</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in assignments %}
-          <tr class="border-t hover:bg-gray-50">
-            <td class="p-2">
-              <a href="/pages/assignments/{{ a.id }}" class="text-blue-600 hover:underline">{{ a.name }}</a>
-            </td>
-            <td class="p-2">{{ a.start_date }} {{ a.start_time }}</td>
-            <td class="p-2">{{ a.due_date }} {{ a.due_time }}</td>
-            <td class="p-2">{{ a.grade }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="text-gray-600">Пока никто не решал данное задание</p>
-    {% endif %}
-  </main>
+        <div class="back-button-container">
+            <a href="/pages/tutor-home" class="back-button">
+                Вернуться к заданиям
+            </a>
+        </div>
+    </main>
 </body>
 </html>

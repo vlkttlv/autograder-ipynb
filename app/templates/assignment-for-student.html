@@ -36,7 +36,7 @@
   <nav class="nav-base">
     <div class="nav-title">NotebookGrader</div>
     <div class="nav-actions">
-      <a href="/pages/tutor-home" class="home-link">Домой</a>
+      <a href="/pages/student-home" class="home-link">Домой</a>
       <form action="/auth/logout" method="post">
         <button class="logout-button">Выйти</button>
       </form>
@@ -51,20 +51,15 @@
       <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time }}</p>
       <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
       <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
-      <p><a href="/assignments/original/{{ assignment.id }}" class="file-link">Скачать оригинальное задание</a></p>
-      <p><a href="/assignments/modified/{{ assignment.id }}" class="file-link">Скачать модифицированное задание</a></p>
-      <p><a href="/pages/assignments/{{ assignment.id }}/stats" class="file-link">Посмотреть статистику</a></p>
+      <p><a href="/assignments/modified/{{ assignment.id }}" class="file-link">Скачать задание</a></p>
     </div>
 
     <div class="back-button-container">
-      <a href="/pages/tutor-home" class="back-button">
-        Вернуться к списку заданий
+      <a href="/pages/student-home" class="back-button">
+        Вернуться назад
       </a>
-      <button id="delete-btn" class="delete-button">
-        Удалить задание
-      </button>
       <a href="/pages/assignments/{{ assignment.id }}/edit" class="edit-button">
-        Редактировать
+        Загрузить решение
       </a>
     </div>
   </main>

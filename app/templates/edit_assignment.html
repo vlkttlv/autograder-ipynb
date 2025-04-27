@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактировать задание</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/assignment.css') }}">
+</head>
+<body class="body-base">
+
+  <nav class="nav-base">
+    <div class="nav-title">NotebookGrader</div>
+    <div class="nav-actions">
+      <a href="/pages/tutor-home" class="home-link">Домой</a>
+      <form action="/auth/logout" method="post">
+        <button class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <h1 class="main-title">Редактировать задание</h1>
+
+    <form id="assignment-form" class="space-y-4" enctype="multipart/form-data">
+      <div>
+        <label for="name" class="block font-semibold text-lg">Название задания</label>
+        <input type="text" id="name" name="name" value="{{ assignment.name }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="number_of_attempts" class="block font-semibold text-lg">Максимальное количество попыток</label>
+        <input type="number" id="number_of_attempts" name="number_of_attempts" value="{{ assignment.number_of_attempts }}" min="1" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="start_date" class="block font-semibold text-lg">Дата открытия теста</label>
+        <input type="date" id="start_date" name="start_date" value="{{ assignment.start_date }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="start_time" class="block font-semibold text-lg">Время открытия теста</label>
+        <input type="time" id="start_time" name="start_time" value="{{ assignment.start_time }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="due_date" class="block font-semibold text-lg">Дата сдачи теста</label>
+        <input type="date" id="due_date" name="due_date" value="{{ assignment.due_date }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="due_time" class="block font-semibold text-lg">Время сдачи теста</label>
+        <input type="time" id="due_time" name="due_time" value="{{ assignment.due_time }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <div>
+        <label for="assignment_file" class="block font-semibold text-lg">Изменить файл задания</label>
+        <input type="file" id="assignment_file" name="assignment_file" accept=".ipynb" class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
+      <!-- Ссылка на старый файл задания -->
+      {% if file %}
+      <div>
+        <p class="font-semibold text-lg">Текущий файл задания:</p>
+        <a href="{{ url_for('assignment', path='original_assignments/'+file.filename) }}" class="text-blue-500" download>Скачать старый файл</a>
+      </div>
+      {% endif %}
+
+      <button type="button" id="save-changes-btn" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">Сохранить изменения</button>
+    </form>
+
+    <!-- Ошибка будет здесь -->
+    <div id="error-message" class="mt-4 text-red-600 hidden"></div>
+
+    <div class="back-button-container mt-6">
+      <a href="/pages/assignments/{{ assignment.id }}" class="back-button w-full bg-green-500 text-white py-2 rounded-md text-center hover:bg-green-600 transition-colors">Отменить изменения</a>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('save-changes-btn').addEventListener('click', async function() {
+      const form = document.getElementById('assignment-form');
+      const formData = new FormData(form);
+      const assignmentId = {{ assignment.id }};
+      
+      // Создание объекта для обновления задания
+      const updatedAssignment = {
+        name: formData.get('name'),
+        start_date: formData.get('start_date'),
+        start_time: formData.get('start_time'),
+        due_date: formData.get('due_date'),
+        due_time: formData.get('due_time'),
+        number_of_attempts: formData.get('number_of_attempts'),
+      };
+
+      // Отправка PATCH запроса для обновления задания
+      try {
+        const response = await fetch(`/assignments/${assignmentId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedAssignment),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Ошибка обновления задания:', errorData);
+          document.getElementById('error-message').textContent = errorData.detail || 'Произошла ошибка при обновлении задания';
+          document.getElementById('error-message').classList.remove('hidden');
+        }
+
+        // Если файл был выбран, отправляем его на сервер
+        const assignmentFile = formData.get('assignment_file');
+        if (assignmentFile) {
+          const fileFormData = new FormData();
+          fileFormData.append('assignment_file', assignmentFile);
+
+          const fileResponse = await fetch(`/assignments/${assignmentId}/file/update`, {
+            method: 'POST',
+            body: fileFormData,
+          });
+
+          if (!fileResponse.ok) {
+            const fileErrorData = await fileResponse.json();
+            console.error('Ошибка обновления файла:', fileErrorData);
+            document.getElementById('error-message').textContent = fileErrorData.detail || 'Ошибка при обновлении файла задания';
+            document.getElementById('error-message').classList.remove('hidden');
+          }
+        } else {
+          // Если файл не был выбран, просто редиректим
+          window.location.href = '/pages/tutor-home';
+        }
+      } catch (error) {
+        console.error('Ошибка при отправке данных:', error);
+        document.getElementById('error-message').textContent = 'Произошла ошибка при отправке данных';
+        document.getElementById('error-message').classList.remove('hidden');
+      }
+    });
+  </script>
+
+</body>
+</html>

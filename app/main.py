@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 from app.admin.views import AssignmentsAdmin, SubmissionsAdmin, UsersAdmin, RefreshTokensAdmin
@@ -12,6 +13,19 @@ from app.db import engine
 
 
 app = FastAPI()
+
+# from app.middleware.auth import RefreshTokenMiddleware
+
+# app.add_middleware(RefreshTokenMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # фронтенд-адрес
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 app.include_router(user_router)
 app.include_router(assignment_router)
 app.include_router(submission_router)
@@ -23,4 +37,5 @@ admin.add_view(AssignmentsAdmin)
 admin.add_view(RefreshTokensAdmin)
 admin.add_view(SubmissionsAdmin)
 
-# app.mount("/static", StaticFiles(directory="app/static"), "static")
+app.mount("/static", StaticFiles(directory="app/static"), "static")
+app.mount("/assignment", StaticFiles(directory="app/assignment"), name="assignment")
