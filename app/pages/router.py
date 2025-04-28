@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -42,13 +42,32 @@ async def tutor_home(request: Request, current_user: Users = Depends(get_current
 
 @router.get("/assignments/{assignment_id}",
             response_class=HTMLResponse)
-async def assignment_page(request: Request, assignment_id: str, current_user: Users = Depends(get_current_user)):
+async def assignment_page(request: Request,assignment_id: str, assignment = Depends(get_assignment), current_user: Users = Depends(get_current_user)):
     """Отображение страницы задания"""
-    assignment = await AssignmentService.find_one_or_none(id=assignment_id, user_id=current_user.id)
-    return templates.TemplateResponse("assignment.html", {
-        "request": request,
-        "assignment": assignment
-    })
+    if current_user.role == 'TUTOR':
+        return templates.TemplateResponse("assignment.html", {
+            "request": request,
+            "assignment": assignment
+        })
+    else:
+        submission = await SubmissionsService.find_one_or_none(assignment_id=assignment_id, user_id=current_user.id)
+        due = False
+        if submission:
+            if submission.number_of_attempts >= assignment.number_of_attempts:
+                due = True
+        if assignment.due_date < datetime.now().date():
+            due = True
+        if assignment.start_date > datetime.now().date():
+            due = True
+        if assignment.due_date == datetime.now().date() and assignment.start_time > datetime.now().time():
+            due = True
+        return templates.TemplateResponse("assignment-for-student.html", {
+            "request": request,
+            "assignment": assignment,
+            "due": due,
+            "submission": submission
+        })
+
 
 
 @router.get("/assignments/{assignment_id}/stats",
@@ -96,20 +115,8 @@ async def student_home(request: Request, current_user: Users = Depends(get_curre
     )
 
 
-@router.get("/student/assignments/{assignment_id}",response_class=HTMLResponse,
-            dependencies=[Depends(check_student_role)])
-async def student_assignment(request: Request, assignment = Depends(get_assignment)):
-    return templates.TemplateResponse(
-        name="assignment-for-student.html",
-        context={"request": request, "assignment": assignment}
-    )
-
-
 # TODO:
 # сделать следующее:
-#   прикрепление задание
-#   проверка задания
 #   реализовать личные кабинеты
-#   разобраться с refresh токенами 
-#   разобраться с проверкой ролей
-#   добавить проверку на дедлайн
+#   разобраться с refresh токенами (middleware)
+#   разобраться с проверкой ролей ?

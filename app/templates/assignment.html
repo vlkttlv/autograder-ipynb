@@ -5,11 +5,11 @@
   <title>{{ assignment.name or 'Задание' }}</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/assignment.css') }}">
-
+  <script src="/static/js/script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('delete-btn').addEventListener('click', async function() {
-        const assignmentId = {{ assignment.id }};
+        const assignmentId = "{{ assignment.id }}";
         const assignmentName = "{{ assignment.name }}";
   
         const confirmed = confirm(`Вы уверены, что хотите удалить задание "${assignmentName}"?\n\nЭту операцию нельзя отменить. Вся информация, связанная с заданием, включая все оценки, будет удалена.`);
@@ -67,12 +67,12 @@
       <a href="/pages/tutor-home" class="back-button">
         Вернуться к списку заданий
       </a>
+      <a href="/pages/assignments/{{ assignment.id }}/edit" class="edit-button">
+        Редактировать задание
+      </a>
       <button id="delete-btn" class="delete-button">
         Удалить задание
       </button>
-      <a href="/pages/assignments/{{ assignment.id }}/edit" class="edit-button">
-        Редактировать
-      </a>
     </div>
   </main>
 </body>

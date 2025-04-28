@@ -5,6 +5,7 @@
   <title>Редактировать задание</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/assignment.css') }}">
+  <script src="/static/js/script.js"></script>
 </head>
 <body class="body-base">
 
@@ -80,7 +81,7 @@
     document.getElementById('save-changes-btn').addEventListener('click', async function() {
   const form = document.getElementById('assignment-form');
   const formData = new FormData(form);
-  const assignmentId = {{ assignment.id }};
+  const assignmentId = "{{ assignment.id }}";
 
   // Функция для проверки и исключения пустых значений
   function getValueOrExclude(value) {

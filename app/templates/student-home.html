@@ -5,6 +5,7 @@
   <title>Главная</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/tutor-home.css') }}">
+  <script src="/static/js/script.js"></script>
 </head>
 <body class="body-base">
   <nav class="nav-base">
@@ -32,10 +33,10 @@
           {% for s in submissions %}
           <tr class="table-row">
             <td class="table-cell">
-              <a href="/pages/student/assignments/{{ s.assignment.id }}" class="assignment-link">{{ s.assignment.name }}</a>
+              <a href="/pages/assignments/{{ s.assignment.id }}" class="assignment-link">{{ s.assignment.name }}</a>
             </td>
-            <td class="table-cell">{{ s.number_of_attempts }}</td>
-            <td class="table-cell">{{ s.score }}</td>
+            <td class="table-cell">{{ s.number_of_attempts }}/{{s.assignment.number_of_attempts}}</td>
+            <td class="table-cell">{{ s.score }}/{{s.assignment.grade}}</td>
           </tr>
           {% endfor %}
         </tbody>

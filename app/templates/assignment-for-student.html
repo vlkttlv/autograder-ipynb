@@ -1,36 +1,11 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <title>{{ assignment.name or 'Задание' }}</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/assignment.css') }}">
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      document.getElementById('delete-btn').addEventListener('click', async function() {
-        const assignmentId = {{ assignment.id }};
-        
-        try {
-          const response = await fetch(`/assignments/${assignmentId}`, {
-            method: 'DELETE',
-          });
-
-          if (response.ok) {
-            // Перенаправление на список заданий после успешного удаления
-            window.location.href = '/pages/tutor-home';
-          } else {
-            const errorData = await response.json();
-            alert('Ошибка: ' + (errorData.detail || 'Не удалось удалить задание'));
-          }
-        } catch (error) {
-          console.error('Ошибка при удалении задания:', error);
-          alert('Произошла ошибка при удалении задания');
-        }
-      });
-    });
-  </script>
-
+  <script src="/static/js/script.js"></script>
 </head>
 <body class="body-base">
   <nav class="nav-base">
@@ -50,20 +25,99 @@
       <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time }}</p>
       <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time }}</p>
       <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
+      {% if submission %}
+      <p><strong>Затрачено попыток:</strong> {{ submission.number_of_attempts }}</p>
+      {% else %}
+      <p><strong>Затрачено попыток:</strong> 0</p>
+      {% endif %}
       <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
+      {% if submission %}
+      <p><strong>Получено баллов:</strong> {{ submission.score }}</p>
+      {% endif %}
       <p><a href="/assignments/modified/{{ assignment.id }}" class="file-link">Скачать задание</a></p>
     </div>
+
+    {% if not due %}
+    <div class="submit-assignment-container">
+      <p>Прикрепите решение:</p>
+      <input type="file" id="submission-file" class="w-full p-2 border border-gray-300 rounded-md" accept=".ipynb">
+      <button type="button" id="submit-btn" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 mt-4">Отправить и оценить решение</button>
+      <p id="message" class="mt-2 text-sm"></p> <!-- Блок для вывода сообщений -->
+    </div>
+    {% endif %}
 
     <div class="back-button-container">
       <a href="/pages/student-home" class="back-button">
         Вернуться назад
       </a>
-      <a href="/pages/assignments/{{ assignment.id }}/edit" class="edit-button">
-        Загрузить решение
-      </a>
     </div>
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const submitButton = document.getElementById('submit-btn');
+      const messageBlock = document.getElementById('message');
+
+      if (!submitButton) {
+        console.error("Кнопка 'Отправить решение' не найдена на странице");
+      }
+
+      function showMessage(text, type = 'success') {
+        messageBlock.textContent = text;
+        if (type === 'success') {
+          messageBlock.className = "mt-2 text-green-600 text-sm";
+        } else {
+          messageBlock.className = "mt-2 text-red-600 text-sm";
+        }
+      }
+
+      submitButton?.addEventListener('click', async function() {
+        const assignmentId = "{{ assignment.id }}";
+        const fileInput = document.getElementById('submission-file');
+        const file = fileInput.files[0];
+
+        if (!file) {
+          showMessage("Пожалуйста, выберите файл для отправки.", 'error');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('submission_file', file);
+
+        try {
+          showMessage("Отправка файла...", 'success');
+
+          // Сначала загружаем файл
+          const response = await fetch(`/submissions/${assignmentId}`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            showMessage("Файл загружен! Проверяем решение...", 'success');
+
+            // Затем проверяем файл
+            const checkResponse = await fetch(`/submissions/${assignmentId}/check`, {
+              method: 'POST',
+            });
+
+            if (checkResponse.ok) {
+              const data = await checkResponse.json();
+              showMessage(`Решение проверено! Ваши баллы: ${data.score}`, 'success');
+            } else {
+              const errorData = await checkResponse.json();
+              showMessage('Ошибка при проверке: ' + (errorData.detail || 'Не удалось проверить решение'), 'error');
+            }
+          } else {
+            const errorData = await response.json();
+            showMessage('Ошибка при загрузке файла: ' + (errorData.detail || 'Не удалось загрузить файл'), 'error');
+          }
+        } catch (error) {
+          console.error('Ошибка при отправке задания:', error);
+          showMessage('Произошла ошибка при отправке задания.', 'error');
+        }
+      });
+    });
+  </script>
 </body>
 </html>
-
-

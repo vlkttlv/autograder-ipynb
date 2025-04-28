@@ -1,4 +1,4 @@
-# from fastapi import Request, Response
+# from fastapi import Depends, Request, Response
 # import jwt
 # from starlette.middleware.base import BaseHTTPMiddleware
 # from fastapi.responses import RedirectResponse
@@ -7,7 +7,7 @@
 # from app.auth.dependencies import get_current_user, get_current_user, get_refresh_token
 # from app.exceptions import IncorrectTokenFormatException, TokenExpiredException, UserIsNotPresentException
 # class RefreshTokenMiddleware(BaseHTTPMiddleware):
-#     async def dispatch(self, request: Request, call_next):
+#     async def dispatch(self, request: Request, call_next, refresh_token = Depends(get_refresh_token)):
 #         # Если пользователь идет на страницы аутентификации, пропускаем проверку токена
 #         if request.url.path.startswith("/pages/auth") or request.url.path.startswith("/auth/"):
 #             return await call_next(request)
@@ -18,7 +18,6 @@
 #         except (IncorrectTokenFormatException, TokenExpiredException, UserIsNotPresentException):
 #             # Ошибка токена - пробуем обновить токен через БД
 #             try:
-#                 refresh_token = await get_refresh_token(request=request)
 #                 payload = jwt.decode(refresh_token, options={"verify_signature": False, "verify_exp": False})
 #                 user_id = payload.get("sub")
 #                 role = payload.get("role")

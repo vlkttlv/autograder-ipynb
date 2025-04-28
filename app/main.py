@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 from app.admin.views import AssignmentsAdmin, SubmissionsAdmin, UsersAdmin, RefreshTokensAdmin
+# from app.middleware.auth import RefreshTokenMiddleware
 from app.user.router import router as user_router
 from app.assignment.router import router as assignment_router
 from app.submissions.router import router as submission_router
@@ -14,7 +15,7 @@ from app.db import engine
 
 app = FastAPI()
 
-
+# app.add_middleware(RefreshTokenMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
