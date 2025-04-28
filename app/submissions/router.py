@@ -23,7 +23,7 @@ router = APIRouter(prefix="/submissions", tags=['Submissions'])
 
 @router.post("/{assignment_id}", status_code=201, dependencies=[Depends(check_student_role)])
 async def add_submission(
-    assignment_id: int,
+    assignment_id: str,
     submission_file: UploadFile = File(...),
     current_user: Users = Depends(get_current_user)
 ):
@@ -61,7 +61,7 @@ async def add_submission(
 @router.get("/{assignment_id}/download",
             dependencies=[Depends(check_student_role)])
 async def download_assignment(
-    assignment_id: int
+    assignment_id: str
 ):
     """Загрузка задания"""
 
@@ -74,7 +74,7 @@ async def download_assignment(
                 
 @router.post("/{assignment_id}/check", dependencies=[Depends(check_student_role)])
 async def check_submission(
-    assignment_id: int,
+    assignment_id: str,
     current_user: Users = Depends(get_current_user)
 ):
     """Проверка решения"""
@@ -108,7 +108,7 @@ async def get_submissions(current_user: Users = Depends(get_current_user)):
 
 
 @router.get("/{submission_id}", dependencies=[Depends(check_student_role)])
-async def get_submission_by_id(submission_id: int, current_user: Users = Depends(get_current_user)):
+async def get_submission_by_id(submission_id: str, current_user: Users = Depends(get_current_user)):
     """Получение конкретного решения по ID"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=current_user.id)
     if not submission:
@@ -116,17 +116,14 @@ async def get_submission_by_id(submission_id: int, current_user: Users = Depends
     return submission
 
 @router.get("/{submission_id}/get", dependencies=[Depends(get_current_user)])
-async def download_submission(submission_id: int, user_id: int):
+async def download_submission(submission_id: str, user_id: int):
     """Скачивание файла с решением"""
-
     # Проверяем наличие решения в базе
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=user_id)
     if not submission:
         raise SolutionNotFoundException
-
     # Формируем путь к файлу
     file_path = Path(f"app/submissions/student_submissions/{user_id}_{submission.assignment_id}.ipynb")
-
     # Проверяем, что файл существует
     if not file_path.exists():
         raise SolutionNotFoundException
@@ -139,7 +136,7 @@ async def download_submission(submission_id: int, user_id: int):
 
 
 @router.delete("/{submission_id}", dependencies=[Depends(check_student_role)])
-async def delete_submission(submission_id: int, current_user: Users = Depends(get_current_user)):
+async def delete_submission(submission_id: str, current_user: Users = Depends(get_current_user)):
     """Удаление решения по ID"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=current_user.id)
     if not submission:

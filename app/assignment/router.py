@@ -11,7 +11,7 @@ from app.assignment.utils import check_notebook, get_total_points_from_notebook,
 from app.assignment.service import AssignmentService
 from app.submissions.service import SubmissionsService
 from app.auth.dependencies import check_tutor_role, get_current_user
-from app.exceptions import IncorrectFormatAssignmentException
+from app.exceptions import IncorrectFormatAssignmentException, WgongDateException
 from app.user.models import Users
 
 router = APIRouter(prefix="/assignments",
@@ -53,6 +53,9 @@ async def add_assighment(
     current_user: Users = Depends(get_current_user)
 ):
     """Загрузка задания"""
+    if (due_date < start_date) or (due_date == start_date and start_time > due_time):
+        raise WgongDateException
+    
     filename = assignment_file.filename
     if not filename.endswith(".ipynb"):
         raise IncorrectFormatAssignmentException
@@ -85,6 +88,9 @@ async def add_assighment(
               'w', encoding='utf-8') as f:
         nbformat.write(modified_notebook, f)
 
+    return {"status": "ok",
+            "assignment": assignment}
+
 
 @router.get("/", response_model=List[AssignmentResponseSchema], dependencies=[Depends(check_tutor_role)])
 async def get_assignments(current_user: Users = Depends(get_current_user)):
@@ -92,13 +98,13 @@ async def get_assignments(current_user: Users = Depends(get_current_user)):
     return await AssignmentService.find_all(user_id=current_user.id)
 
 @router.get("/{assignment_id}", response_model=Optional[AssignmentResponseSchema])
-async def get_assignment(assignment_id: int, current_user: Users = Depends(get_current_user)):
+async def get_assignment(assignment_id: str, current_user: Users = Depends(get_current_user)):
     """Получение информации о задании по ID"""
     return await AssignmentService.find_one_or_none(id=assignment_id)
 
 
 @router.get("/original/{assignment_id}")
-async def get_original_assignment(assignment_id: int):
+async def get_original_assignment(assignment_id: str):
     """Получение оригинального задания"""
     file_path = Path(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
     return FileResponse(file_path,
@@ -107,7 +113,7 @@ async def get_original_assignment(assignment_id: int):
 
 
 @router.get("/modified/{assignment_id}")
-async def get_modified_assignment(assignment_id: int):
+async def get_modified_assignment(assignment_id: str):
     """Получение оригинального задания"""
     file_path = Path(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
     return FileResponse(file_path,
@@ -116,7 +122,7 @@ async def get_modified_assignment(assignment_id: int):
 
 
 @router.patch("/{assignment_id}")
-async def update_assignment(assignment_id: int, updated_data: AssignmentUpdateSchema):
+async def update_assignment(assignment_id: str, updated_data: AssignmentUpdateSchema):
     """Обновление задания"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
@@ -124,7 +130,7 @@ async def update_assignment(assignment_id: int, updated_data: AssignmentUpdateSc
     await AssignmentService.update_assignment(assignment_id, updated_data)
 
 @router.post("/{assignment_id}/file/update")
-async def update_file_assignment(assignment_id: int,
+async def update_file_assignment(assignment_id: str,
                                  assignment_file: UploadFile = File(...),):
     
     filename = assignment_file.filename
@@ -150,18 +156,19 @@ async def update_file_assignment(assignment_id: int,
         nbformat.write(modified_notebook, f)
 
 @router.delete("/{assignment_id}", status_code=204)
-async def delete_assignment(assignment_id: int, current_user: Users = Depends(get_current_user)):
+async def delete_assignment(assignment_id: str, current_user: Users = Depends(get_current_user)):
     """Удаление задания по ID"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
+    await SubmissionsService.delete(assignment_id=assignment_id)
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
     os.remove(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
     os.remove(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
 
 
 @router.get("/{assignment_id}/stats")
-async def get_stats(assignment_id: int):
+async def get_stats(assignment_id: str):
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")

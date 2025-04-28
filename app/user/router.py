@@ -53,7 +53,7 @@ async def login_user(response: Response, user_data: UserBaseSchema):
     access_token = create_access_token({"sub": str(user.id), "role": user.role})
     refresh_token = await create_refresh_token({"sub": str(user.id), "role": user.role})
     response.set_cookie("access_token", access_token, httponly=True)
-    logger.info("Пользователь залогинился")
+    logger.info(f"Пользователь {user.email} залогинился")
     return {"access_token": access_token,
             "refresh_token": refresh_token}
 
@@ -85,10 +85,10 @@ async def create_test_users():
 
 
 @router.post("/token/refresh", summary="Updates the access token")
-async def refresh_token(response: Response, refresh_token: str = Depends(get_refresh_token)):
+async def refresh_token(response: Response, refresh: str = Depends(get_refresh_token)):
     """Обновление access токена с помощью refresh токена"""
     try:
-        payload = jwt.decode(refresh_token, settings.SECRET_KEY, settings.ALGORITHM)
+        payload = jwt.decode(refresh, settings.SECRET_KEY, settings.ALGORITHM)
         user_id: str = payload.get("sub")
         role = payload.get("role")
         if user_id is None:
@@ -97,7 +97,7 @@ async def refresh_token(response: Response, refresh_token: str = Depends(get_ref
         raise IncorrectTokenFormatException from e
     new_access_token = create_access_token({"sub": user_id, "role": role})
     response.set_cookie("access_token", new_access_token, httponly=True)
-    logger.info("Токен был обновлен")
+    logger.info(f"Токен был обновлен для юзера: {user_id} {role}")
     return {"access_token": new_access_token}
 
 

@@ -14,12 +14,10 @@ from app.db import engine
 
 app = FastAPI()
 
-# from app.middleware.auth import RefreshTokenMiddleware
 
-# app.add_middleware(RefreshTokenMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # фронтенд-адрес
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

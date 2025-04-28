@@ -14,7 +14,7 @@ class TokenService(BaseService):
 
 
     @classmethod
-    async def update_token(cls, created_at, expires_at, user_id: int):
+    async def update_token(cls, created_at, expires_at, token, user_id: int):
         """
         Обновляет refresh токен в БД
 
@@ -25,6 +25,8 @@ class TokenService(BaseService):
             token: токен
         """
         async with async_session_maker() as session:
-            stmt = update(cls.model).where(user_id==user_id).values(created_at=created_at, expires_at=expires_at)
+            stmt = update(cls.model).where(cls.model.user_id == user_id).values(created_at=created_at,
+                                                                                expires_at=expires_at,
+                                                                                token=token)
             await session.execute(stmt)
             await session.commit()

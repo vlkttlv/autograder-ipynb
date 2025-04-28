@@ -10,14 +10,20 @@
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('delete-btn').addEventListener('click', async function() {
         const assignmentId = {{ assignment.id }};
-        
+        const assignmentName = "{{ assignment.name }}";
+  
+        const confirmed = confirm(`Вы уверены, что хотите удалить задание "${assignmentName}"?\n\nЭту операцию нельзя отменить. Вся информация, связанная с заданием, включая все оценки, будет удалена.`);
+  
+        if (!confirmed) {
+          return; // если пользователь нажал "Отмена", прекращаем выполнение
+        }
+  
         try {
           const response = await fetch(`/assignments/${assignmentId}`, {
             method: 'DELETE',
           });
-
+  
           if (response.ok) {
-            // Перенаправление на список заданий после успешного удаления
             window.location.href = '/pages/tutor-home';
           } else {
             const errorData = await response.json();
@@ -30,6 +36,7 @@
       });
     });
   </script>
+  
 
 </head>
 <body class="body-base">

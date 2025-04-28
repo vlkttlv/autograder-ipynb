@@ -48,7 +48,7 @@ async def create_refresh_token(data: dict) -> str:
     if not token_user:
         await TokenService.add(token=token, user_id=user_id, created_at=now_time, expires_at=expire)
     else:
-        await TokenService.update_token(created_at=now_time, expires_at=expire, user_id=user_id)
+        await TokenService.update_token(created_at=now_time, expires_at=expire, user_id=user_id, token=token)
     return token
 
 
