@@ -60,7 +60,7 @@ pydantic==2.10.6
 pydantic-settings==2.8.1
 pydantic_core==2.27.2
 Pygments==2.19.1
-PyJWT==2.6.0
+PyJWT==2.10.1
 pytest==8.3.5
 pytest-asyncio==0.26.0
 python-dateutil==2.9.0.post0

@@ -1,7 +1,7 @@
 from datetime import datetime
 import jwt
 from fastapi import Depends, HTTPException, Request
-from jwt import PyJWKError
+# from jwt import PyJWKError
 from app.config import settings
 from app.exceptions import (IncorrectRoleException, IncorrectTokenFormatException,
                             TokenAbsentException,
@@ -22,7 +22,7 @@ async def get_refresh_token(token: str = Depends(get_token)):
     # декодируем текущий access токен без проверки подписи и времени
     try:
         payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
-    except PyJWKError as e:
+    except Exception as e:
         raise IncorrectTokenFormatException from e
     user_id: str = payload.get("sub")
     if not user_id:
@@ -42,7 +42,7 @@ async def get_current_user(token: str = Depends(get_token)):
         payload = jwt.decode(
             token, settings.SECRET_KEY, settings.ALGORITHM
         )
-    except PyJWKError as e:
+    except Exception as e:
         raise IncorrectTokenFormatException from e
     expire: str = payload.get("exp")
     if (not expire) or (int(expire) < datetime.utcnow().timestamp()):
