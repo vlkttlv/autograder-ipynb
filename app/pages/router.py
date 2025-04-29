@@ -42,7 +42,10 @@ async def tutor_home(request: Request, current_user: Users = Depends(get_current
 
 @router.get("/assignments/{assignment_id}",
             response_class=HTMLResponse)
-async def assignment_page(request: Request,assignment_id: str, assignment = Depends(get_assignment), current_user: Users = Depends(get_current_user)):
+async def assignment_page(request: Request,
+                          assignment_id: str,
+                          assignment = Depends(get_assignment),
+                          current_user: Users = Depends(get_current_user)):
     """Отображение страницы задания"""
     if current_user.role == 'TUTOR':
         return templates.TemplateResponse("assignment.html", {
@@ -50,7 +53,8 @@ async def assignment_page(request: Request,assignment_id: str, assignment = Depe
             "assignment": assignment
         })
     else:
-        submission = await SubmissionsService.find_one_or_none(assignment_id=assignment_id, user_id=current_user.id)
+        submission = await SubmissionsService.find_one_or_none(assignment_id=assignment_id,
+                                                               user_id=current_user.id)
         due = False
         if submission:
             if submission.number_of_attempts >= assignment.number_of_attempts:
@@ -97,8 +101,13 @@ async def create_assignment_page(request: Request):
 @router.get("/assignments/{assignment_id}/edit",
             response_class=HTMLResponse,
             dependencies=[Depends(check_tutor_role)])
-async def update_assignment_page(request: Request, assignment = Depends(get_assignment), file  = Depends(get_original_assignment)):
-    return templates.TemplateResponse("edit_assignment.html", {"request": request, "assignment": assignment, "file": file})
+async def update_assignment_page(request: Request,
+                                 assignment = Depends(get_assignment),
+                                 file  = Depends(get_original_assignment)):
+    return templates.TemplateResponse("edit_assignment.html",
+                                      {"request": request,
+                                       "assignment": assignment,
+                                       "file": file})
 
 
 ### STUDENT ENDPOINTS

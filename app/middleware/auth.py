@@ -1,40 +1,45 @@
-# from fastapi import Depends, Request, Response
-# import jwt
-# from starlette.middleware.base import BaseHTTPMiddleware
-# from fastapi.responses import RedirectResponse
+import time
+import jwt
+import httpx
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+from app.config import settings
 
-# from app.auth.auth import create_access_token
-# from app.auth.dependencies import get_current_user, get_current_user, get_refresh_token
-# from app.exceptions import IncorrectTokenFormatException, TokenExpiredException, UserIsNotPresentException
-# class RefreshTokenMiddleware(BaseHTTPMiddleware):
-#     async def dispatch(self, request: Request, call_next, refresh_token = Depends(get_refresh_token)):
-#         # Если пользователь идет на страницы аутентификации, пропускаем проверку токена
-#         if request.url.path.startswith("/pages/auth") or request.url.path.startswith("/auth/"):
-#             return await call_next(request)
 
-#         try:
-#             # Пробуем получить пользователя
-#             await get_current_user(request)
-#         except (IncorrectTokenFormatException, TokenExpiredException, UserIsNotPresentException):
-#             # Ошибка токена - пробуем обновить токен через БД
-#             try:
-#                 payload = jwt.decode(refresh_token, options={"verify_signature": False, "verify_exp": False})
-#                 user_id = payload.get("sub")
-#                 role = payload.get("role")
-#                 if not user_id or not role:
-#                     return RedirectResponse(url="/pages/auth/login")
+class TokenRefreshMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
 
-#                 new_access_token = create_access_token({"sub": user_id, "role": role})
-                
-#                 # Ставим новый токен в куки
-#                 response = RedirectResponse(url=request.url.path)
-#                 response.set_cookie(key="access_token", value=new_access_token, httponly=True)
-#                 return response
+        # Если пользователь идет на страницы аутентификации, пропускаем проверку токена
+        if request.url.path.startswith("/pages/auth") or request.url.path.startswith("/auth/"):
+            return await call_next(request)
+        
+        access_token = request.cookies.get("access_token")
 
-#             except Exception as e:
-#                 # если рефреш токен тоже битый
-#                 return RedirectResponse(url="/pages/auth/login")
+        if access_token:
+            try:
+                payload = jwt.decode(access_token, options={"verify_signature": False, "verify_exp": False})
+                exp = payload.get("exp")
+                now = int(time.time())
 
-#         # Если токен валидный, идем дальше
-#         response = await call_next(request)
-#         return response
+                # Если истёк или истечёт через 5 минут
+                if exp and exp - now < 300:
+                    async with httpx.AsyncClient(base_url=str(request.base_url)) as client:
+                        refresh_response = await client.post("/token/refresh", cookies=request.cookies)
+
+                    if refresh_response.status_code == 200:
+                        new_access_token = refresh_response.json().get("access_token")
+                        if new_access_token:
+                            request.cookies["access_token"] = new_access_token
+                            response = await call_next(request)
+                            response.set_cookie("access_token", new_access_token, httponly=True)
+                            return response
+                    else:
+                        return JSONResponse(status_code=401, content={"detail": "Unable to refresh token"})
+
+            except jwt.InvalidTokenError:
+                return JSONResponse(status_code=401, content={"detail": "Invalid access token"})
+
+        # Если access_token отсутствует или валиден — просто продолжаем
+        response = await call_next(request)
+        return response
