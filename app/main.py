@@ -15,7 +15,7 @@ from app.db import engine
 
 app = FastAPI()
 
-app.add_middleware(TokenRefreshMiddleware)
+# app.add_middleware(TokenRefreshMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
