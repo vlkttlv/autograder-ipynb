@@ -18,8 +18,8 @@ router = APIRouter(prefix="/assignments",
                    tags=['Assignments'])
 
 
-ORIGINAL_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_ORIGINAL_DIR", "app\\assignment\\original_assignments")
-MODIFIED_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_MODIFIED_DIR", "app\\assignment\\modified_assignments")
+ORIGINAL_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_ORIGINAL_DIR", "app/assignment/original_assignments")
+MODIFIED_ASSIGNMENTS_PATH = os.getenv("ASSIGNMENT_MODIFIED_DIR", "app/assignment/modified_assignments")
 
 @router.post("/test")
 async def test(assignment_file: UploadFile = File(...)):
@@ -106,7 +106,8 @@ async def get_assignment(assignment_id: str, current_user: Users = Depends(get_c
 @router.get("/original/{assignment_id}")
 async def get_original_assignment(assignment_id: str):
     """Получение оригинального задания"""
-    file_path = Path(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
+    
+    file_path = Path(os.path.join(ORIGINAL_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"))
     return FileResponse(file_path,
                         media_type='application/x-jupyter-notebook',
                         filename=f"{assignment_id}.ipynb")
@@ -115,7 +116,7 @@ async def get_original_assignment(assignment_id: str):
 @router.get("/modified/{assignment_id}")
 async def get_modified_assignment(assignment_id: str):
     """Получение оригинального задания"""
-    file_path = Path(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
+    file_path = Path(os.path.join(MODIFIED_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"))
     return FileResponse(file_path,
                         media_type='application/x-jupyter-notebook',
                         filename=f"{assignment_id}.ipynb")
@@ -163,8 +164,8 @@ async def delete_assignment(assignment_id: str, current_user: Users = Depends(ge
         raise HTTPException(status_code=404, detail="Задание не найдено")
     await SubmissionsService.delete(assignment_id=assignment_id)
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
-    os.remove(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
-    os.remove(f"app\\assignment\\original_assignments\\{assignment_id}.ipynb")
+    os.remove(os.path.join(MODIFIED_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"))
+    os.remove(os.path.join(ORIGINAL_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"))
 
 
 @router.get("/{assignment_id}/stats")
