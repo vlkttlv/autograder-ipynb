@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends, Response
 import jwt
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidKeyError
 from app.exceptions import (IncorrectEmailOrPasswordException,
                             IncorrectTokenFormatException,
                             UserAlreadyExistsException)
@@ -93,7 +93,7 @@ async def refresh_token(response: Response, refresh: str = Depends(get_refresh_t
         role = payload.get("role")
         if user_id is None:
             raise IncorrectTokenFormatException
-    except InvalidTokenError as e:
+    except InvalidKeyError as e:
         raise IncorrectTokenFormatException from e
     new_access_token = create_access_token({"sub": user_id, "role": role})
     response.set_cookie("access_token", new_access_token, httponly=True)
