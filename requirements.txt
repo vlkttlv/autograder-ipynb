@@ -8,6 +8,7 @@ bcrypt==4.3.0
 certifi==2025.1.31
 cffi==1.17.1
 charset-normalizer==3.4.1
+click==8.1.8
 colorama==0.4.6
 comm==0.2.2
 cryptography==44.0.2
@@ -83,6 +84,7 @@ traitlets==5.14.3
 typing_extensions==4.12.2
 tzdata==2025.1
 urllib3==2.3.0
+uvicorn==0.34.2
 wcwidth==0.2.13
 webdavclient3==3.14.6
 WTForms==3.1.2
