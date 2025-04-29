@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -5,6 +6,7 @@ from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 import nbformat
 import logging
+from app.assignment.router import MODIFIED_ASSIGNMENTS_PATH, ORIGINAL_ASSIGNMENTS_PATH
 from app.auth.dependencies import check_student_role, get_current_user
 from app.exceptions import IncorrectFormatAssignmentException, SolutionNotFoundException, SyntaxException
 from app.submissions.service import SubmissionsService
@@ -20,7 +22,7 @@ configure_logging()
 
 router = APIRouter(prefix="/submissions", tags=['Submissions'])
 
-
+SUBMISSION_PATH = os.getenv("SUBMISSION_DIR", "app/submissions/student_submissions")
 @router.post("/{assignment_id}", status_code=201, dependencies=[Depends(check_student_role)])
 async def add_submission(
     assignment_id: str,
@@ -45,7 +47,7 @@ async def add_submission(
         raise SyntaxException from e
 
 
-    with open(f'app\\submissions\\student_submissions\\{current_user.id}_{assignment_id}.ipynb',
+    with open(os.path.join(SUBMISSION_PATH, f"{current_user.id}_{assignment_id}.ipynb"),
               'w', encoding='utf-8') as f:
         nbformat.write(notebook, f)
     res = await SubmissionsService.find_one_or_none(user_id=current_user.id, assignment_id=assignment_id)
@@ -66,7 +68,7 @@ async def download_assignment(
     """Загрузка задания"""
 
     await check_date_submission(assignment_id)
-    file_path = Path(f"app\\assignment\\modified_assignments\\{assignment_id}.ipynb")
+    file_path = Path(os.path.join(MODIFIED_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb"),)
     return FileResponse(file_path,
                         media_type='application/x-jupyter-notebook',
                         filename=f"{assignment_id}.ipynb")
@@ -81,10 +83,10 @@ async def check_submission(
 
     submission_service = await check_date_and_attempts_submission(assignment_id, current_user)
     
-    submission_path = f"app\\submissions\\student_submissions\\{current_user.id}_{assignment_id}.ipynb"
+    submission_path = os.path.join(SUBMISSION_PATH, f"{current_user.id}_{assignment_id}.ipynb")
     submission = nbformat.read(submission_path, as_version=4)
 
-    tutor_notebook_path = f"app\\assignment\\original_assignments\\{assignment_id}.ipynb"
+    tutor_notebook_path = os.path.join(ORIGINAL_ASSIGNMENTS_PATH, f"{assignment_id}.ipynb")
     tutor_notebook = nbformat.read(tutor_notebook_path, as_version=4)
 
     client = NotebookClient(submission)
@@ -123,7 +125,8 @@ async def download_submission(submission_id: str, user_id: int):
     if not submission:
         raise SolutionNotFoundException
     # Формируем путь к файлу
-    file_path = Path(f"app/submissions/student_submissions/{user_id}_{submission.assignment_id}.ipynb")
+    
+    file_path = Path(os.path.join(SUBMISSION_PATH, f"{user_id}_{submission.assignment_id}.ipynb"))
     # Проверяем, что файл существует
     if not file_path.exists():
         raise SolutionNotFoundException
