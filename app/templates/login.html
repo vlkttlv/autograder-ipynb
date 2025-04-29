@@ -45,7 +45,7 @@
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -65,9 +65,9 @@
         const userRole = decodedToken.role;
 
         if (userRole === 'STUDENT') {
-          window.location.href = 'http://127.0.0.1:8000/pages/student-home';
+          window.location.href = '/pages/student-home';
         } else if (userRole === 'TUTOR') {
-          window.location.href = 'http://127.0.0.1:8000/pages/tutor-home';
+          window.location.href = '/pages/tutor-home';
         } 
         // else {
         //   alert('Неизвестная роль пользователя');
