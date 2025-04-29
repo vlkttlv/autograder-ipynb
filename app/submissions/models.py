@@ -11,7 +11,7 @@ class Submissions(Base):
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    assignment_id: Mapped[int] = mapped_column(ForeignKey('assignments.id'))
+    assignment_id: Mapped[UUID] = mapped_column(ForeignKey('assignments.id'))
     score: Mapped[int] = mapped_column(Integer)
     number_of_attempts: Mapped[int]
 
