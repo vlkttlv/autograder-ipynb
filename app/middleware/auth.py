@@ -25,7 +25,7 @@ class TokenRefreshMiddleware(BaseHTTPMiddleware):
                 # Если истёк или истечёт через 5 минут
                 if exp and exp - now < 300:
                     async with httpx.AsyncClient(base_url=str(request.base_url)) as client:
-                        refresh_response = await client.post("/token/refresh", cookies=request.cookies)
+                        refresh_response = await client.post("/auth/token/refresh", cookies=request.cookies)
 
                     if refresh_response.status_code == 200:
                         new_access_token = refresh_response.json().get("access_token")
