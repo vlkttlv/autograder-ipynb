@@ -51,13 +51,15 @@ async def add_submission(
                                     assignment_id=assignment_id,
                                     score=0,
                                     number_of_attempts=0)
+        submission_id = submission
         sub_file = await SubmissionFilesService.find_one_or_none(submission_id=submission)
     else:
-        sub_file = await SubmissionFilesService.find_one_or_none(submission_id=submission)
+        submission_id = submission.id
+        sub_file = await SubmissionFilesService.find_one_or_none(submission_id=submission_id)
     submission_notebook = nbformat.writes(notebook).encode("utf-8")
 
     if sub_file is None:
-        await SubmissionFilesService.add(submission_id=submission,
+        await SubmissionFilesService.add(submission_id=submission_id,
                                          assignment_id=assignment_id,
                                         content=submission_notebook)
     else:
