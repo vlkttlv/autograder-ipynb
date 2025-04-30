@@ -216,7 +216,7 @@
           showMessage("Отправка файла...", 'success');
 
           // Сначала загружаем файл
-          const response = await fetch(`/assignments/${assignmentId}/submissions/`, {
+          const response = await fetch(`/assignments/${assignmentId}/submissions`, {
             method: 'POST',
             body: formData,
           });
