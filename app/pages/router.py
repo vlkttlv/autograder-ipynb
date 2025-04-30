@@ -2,10 +2,10 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from app.assignment.router import get_assignment, get_original_assignment, get_stats
+from app.assignment.router import get_assignment, get_file_of_original_assignment, get_stats
 from app.assignment.service import AssignmentService
 from app.auth.dependencies import check_student_role, check_tutor_role, get_current_user
-from app.submissions.service import SubmissionsService
+from app.submissions.service import SubmissionFilesService, SubmissionsService
 from app.user.models import Users
 
 router = APIRouter(
@@ -55,21 +55,25 @@ async def assignment_page(request: Request,
     else:
         submission = await SubmissionsService.find_one_or_none(assignment_id=assignment_id,
                                                                user_id=current_user.id)
+        submission_file = None
         due = False
         if submission:
             if submission.number_of_attempts >= assignment.number_of_attempts:
                 due = True
+            submission_file = await SubmissionFilesService.find_one_or_none(submission_id=submission.id,
+                                                                            assignment_id=assignment_id)
         if assignment.due_date < datetime.now().date():
             due = True
         if assignment.start_date > datetime.now().date():
             due = True
-        if assignment.due_date == datetime.now().date() and assignment.start_time > datetime.now().time():
+        if assignment.due_date == datetime.now().date() and assignment.start_time < datetime.now().time():
             due = True
         return templates.TemplateResponse("assignment-for-student.html", {
             "request": request,
             "assignment": assignment,
             "due": due,
-            "submission": submission
+            "submission": submission,
+            "submission_file": submission_file
         })
 
 
@@ -103,7 +107,7 @@ async def create_assignment_page(request: Request):
             dependencies=[Depends(check_tutor_role)])
 async def update_assignment_page(request: Request,
                                  assignment = Depends(get_assignment),
-                                 file  = Depends(get_original_assignment)):
+                                 file  = Depends(get_file_of_original_assignment)):
     return templates.TemplateResponse("edit_assignment.html",
                                       {"request": request,
                                        "assignment": assignment,

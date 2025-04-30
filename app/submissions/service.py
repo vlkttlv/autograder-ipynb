@@ -1,9 +1,8 @@
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from app.service.base import BaseService
-from app.submissions.models import Submissions
+from app.submissions.models import Submissions, SubmissionFiles
 from app.db import async_session_maker
-from app.user.models import Users
 
 class SubmissionsService(BaseService):
 
@@ -36,3 +35,8 @@ class SubmissionsService(BaseService):
             stmt = select(cls.model).options(selectinload(Submissions.user)).where(cls.model.assignment_id == assignment_id)
             res = await session.execute(stmt)
             return res.scalars().all()
+        
+
+class SubmissionFilesService(BaseService):
+
+    model = SubmissionFiles

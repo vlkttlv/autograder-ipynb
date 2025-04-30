@@ -1,4 +1,5 @@
 from datetime import date, time
+from enum import Enum
 from pydantic import BaseModel, Field
 
 class AssignmentBaseSchema(BaseModel):
@@ -17,3 +18,8 @@ class AssignmentResponseSchema(AssignmentBaseSchema):
 
 class AssignmentUpdateSchema(AssignmentBaseSchema):
     pass
+
+
+class TypeOfAssignmentFile(str, Enum):
+    ORIGINAL = "ORIGINAL"
+    MODIFIED = "MODIFIED"

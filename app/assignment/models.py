@@ -1,9 +1,9 @@
 from datetime import date, time
-from sqlalchemy import Date, ForeignKey, String, Time
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db import Base
-from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
+from sqlalchemy import Date, ForeignKey, Integer, String, Time, LargeBinary
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID
+from app.db import Base
 
 class Assignments(Base):
 
@@ -22,3 +22,16 @@ class Assignments(Base):
     # Связи с другими таблицами
     user = relationship("Users", back_populates="assignment")
     submission = relationship("Submissions", back_populates="assignment")
+    assignment_files = relationship("AssignmentFile", back_populates="assignment")
+
+
+
+class AssignmentFile(Base):
+    __tablename__ = "assignment_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    assignment_id = mapped_column(ForeignKey("assignments.id"))
+    file_type = mapped_column(String)  # original / modified
+    content = mapped_column(LargeBinary)
+
+    assignment = relationship("Assignments", back_populates="assignment_files")

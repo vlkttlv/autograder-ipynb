@@ -7,6 +7,7 @@ from app.middleware.auth import TokenRefreshMiddleware
 from app.user.router import router as user_router
 from app.assignment.router import router as assignment_router
 from app.submissions.router import router as submission_router
+from app.submissions.router import sub_router as two_submission_router
 from app.pages.router import router as frontend
 from app.admin.auth import authentication_backend
 
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(user_router)
 app.include_router(assignment_router)
 app.include_router(submission_router)
+app.include_router(two_submission_router)
 app.include_router(frontend)
 
 admin = Admin(app, engine, authentication_backend=authentication_backend)

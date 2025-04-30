@@ -1,4 +1,4 @@
-from app.assignment.models import Assignments
+from app.assignment.models import AssignmentFile, Assignments
 from app.service.base import BaseService
 
 
@@ -24,3 +24,8 @@ class AssignmentService(BaseService):
             await cls.update(model_id, due_time=updated_data.due_time)
         if updated_data.number_of_attempts is not None:
             await cls.update(model_id, number_of_attempts=updated_data.number_of_attempts)
+
+
+class AssignmentFileService(BaseService):
+    
+    model = AssignmentFile

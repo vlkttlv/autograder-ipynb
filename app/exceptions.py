@@ -78,3 +78,8 @@ class SolutionNotFoundException(AutograderException):
 class EndedAttemptsException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Попытки закончились"
+
+
+class DecodingIPYNBException(AutograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Ошибка при декодировании файла .ipynb"

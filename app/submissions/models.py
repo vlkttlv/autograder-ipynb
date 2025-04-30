@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import ForeignKey, Integer, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -18,3 +18,15 @@ class Submissions(Base):
     # Связи с другими таблицами
     user = relationship("Users", back_populates="submission")
     assignment = relationship("Assignments", back_populates="submission")
+    submission_files = relationship("SubmissionFiles", back_populates="submission")
+
+
+class SubmissionFiles(Base):
+    __tablename__ = "submission_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    submission_id = mapped_column(ForeignKey("submission.id"))
+    assignment_id = mapped_column(ForeignKey("assignments.id"))
+    content = mapped_column(LargeBinary)
+
+    submission = relationship("Submissions", back_populates="submission_files")

@@ -9,6 +9,7 @@ def check_notebook(notebook):
     # Переменные для отслеживания наличия нужных строк
     solution_found = True
     tests_found = True
+    count_test = 0
 
     for cell in notebook.cells:
         if cell.cell_type == 'code':
@@ -29,11 +30,12 @@ def check_notebook(notebook):
                     tests_found = False
                 if "### BEGIN HIDDEN TESTS" not in cell.source and "### END HIDDEN TESTS" in cell.source:
                     tests_found = False
+                count_test += 1
                     
     # Проверка, были ли обнаружены нужные блоки
     if not solution_found:
         raise NotFoundSolutionsInAssignmentException
-    if not tests_found:
+    if not tests_found or count_test == 0:
         raise NotFoundTestsInAssignmentException
     return True
 
