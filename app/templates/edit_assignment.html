@@ -177,7 +177,7 @@
       {% if file %}
       <div>
         <p class="font-semibold text-lg">Текущий файл задания:</p>
-        <a href="{{ url_for('get_file_of_original_assignment', assignment_id=file.assignment_id) }}" class="text-blue-500" download>Скачать файл</a>
+        <a href="{{ url_for('get_file_of_original_assignment', assignment_id=assignment.id) }}" class="text-blue-500" download>Скачать файл</a>
       </div>
       {% endif %}
       <div class="flex gap-4 justify-center mt-6">
