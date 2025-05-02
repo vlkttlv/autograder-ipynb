@@ -142,6 +142,11 @@ async def update_files_of_assignment(assignment_id: str,
     await AssignmentFileService.add(assignment_id=assignment_id,
                                 file_type=TypeOfAssignmentFile.MODIFIED,
                                 content=modified_assignment)
+    
+    client = NotebookClient(notebook)
+    grade = get_total_points_from_notebook(client, notebook)
+    assignment = await AssignmentService.update(model_id=assignment_id,
+                                                           grade=grade)
 
 @router.delete("/{assignment_id}", status_code=204)
 async def delete_assignment(assignment_id: str, current_user: Users = Depends(get_current_user)):
