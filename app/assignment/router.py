@@ -13,11 +13,13 @@ from app.exceptions import (AssignmentNotFoundException,
                             IncorrectFormatAssignmentException,
                             WgongDateException)
 from app.user.models import Users
+from app.user.router import refresh_token
 
 router = APIRouter(prefix="/assignments", tags=['Assignments'])
 
 
-@router.post("/", status_code=201, dependencies=[Depends(check_tutor_role)])
+@router.post("/", status_code=201,
+             dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def add_assighment(
     name: str = Form(description="Название теста"),
     number_of_attempts: int = Form(description="Максимальное количество попыток", ge=1),
@@ -69,7 +71,9 @@ async def add_assighment(
             "assignment": assignment}
 
 
-@router.get("/", response_model=List[AssignmentResponseSchema], dependencies=[Depends(check_tutor_role)])
+@router.get("/",
+            response_model=List[AssignmentResponseSchema],
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def get_assignments(current_user: Users = Depends(get_current_user)):
     """Получение списка всех заданий преподавателя"""
     return await AssignmentService.find_all(user_id=current_user.id)
@@ -77,13 +81,14 @@ async def get_assignments(current_user: Users = Depends(get_current_user)):
 
 @router.get("/{assignment_id}",
             response_model=Optional[AssignmentResponseSchema],
-            dependencies=[Depends(get_current_user)])
+            dependencies=[Depends(refresh_token), Depends(get_current_user)])
 async def get_assignment(assignment_id: str):
     """Получение информации о задании по ID"""
     return await AssignmentService.find_one_or_none(id=assignment_id)
 
 
-@router.get("/{assignment_id}/file/original")
+@router.get("/{assignment_id}/file/original",
+            dependencies=[Depends(refresh_token), Depends(get_current_user)])
 async def get_file_of_original_assignment(assignment_id: str):
     """Получение файла оригинального задания"""
     original_assignment = await AssignmentFileService.find_one_or_none(
@@ -96,7 +101,8 @@ async def get_file_of_original_assignment(assignment_id: str):
                     headers={"Content-Disposition": f"attachment; filename={assignment_id}_orig.ipynb"})
 
 
-@router.get("/{assignment_id}/file/modified")
+@router.get("/{assignment_id}/file/modified",
+            dependencies=[Depends(refresh_token), Depends(get_current_user)])
 async def get_file_of_modified_assignment(assignment_id: str):
     """Получение измененного задания"""
     modified_assignment = await AssignmentFileService.find_one_or_none(
@@ -108,7 +114,8 @@ async def get_file_of_modified_assignment(assignment_id: str):
                     media_type='application/x-jupyter-notebook',
                     headers={"Content-Disposition": f"attachment; filename={assignment_id}_mod.ipynb"})
 
-@router.patch("/{assignment_id}")
+@router.patch("/{assignment_id}",
+              dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def update_assignment(assignment_id: str,
                             updated_data: AssignmentUpdateSchema):
     """Обновление задания"""
@@ -117,7 +124,8 @@ async def update_assignment(assignment_id: str,
         raise AssignmentNotFoundException
     await AssignmentService.update_assignment(assignment_id, updated_data)
 
-@router.patch("/{assignment_id}/file")
+@router.patch("/{assignment_id}/file",
+              dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def update_files_of_assignment(assignment_id: str,
                                      assignment_file: UploadFile = File(...),):
     """Обновление файлов задания"""
@@ -148,7 +156,8 @@ async def update_files_of_assignment(assignment_id: str,
     assignment = await AssignmentService.update(model_id=assignment_id,
                                                            grade=grade)
 
-@router.delete("/{assignment_id}", status_code=204)
+@router.delete("/{assignment_id}", status_code=204,
+               dependencies=[Depends(refresh_token)])
 async def delete_assignment(assignment_id: str, current_user: Users = Depends(get_current_user)):
     """Удаление задания по ID"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
@@ -160,7 +169,8 @@ async def delete_assignment(assignment_id: str, current_user: Users = Depends(ge
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
 
 
-@router.get("/{assignment_id}/stats")
+@router.get("/{assignment_id}/stats",
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def get_stats(assignment_id: str):
     """Получение статистики по заданию"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)

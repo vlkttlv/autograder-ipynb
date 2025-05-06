@@ -16,6 +16,7 @@ from app.submissions.utils import (check_date_and_attempts_submission,
                                    grade_notebook)
 from app.user.models import Users
 from app.logger import configure_logging
+from app.user.router import refresh_token
 
 logger = logging.getLogger(__name__)
 configure_logging()
@@ -24,7 +25,9 @@ configure_logging()
 router = APIRouter(prefix="/assignments", tags=['Submissions'])
 sub_router = APIRouter(prefix="/submissions", tags=["Submissions"])
 
-@router.post("/{assignment_id}/submissions", status_code=201, dependencies=[Depends(check_student_role)])
+@router.post("/{assignment_id}/submissions",
+             status_code=201,
+             dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def add_submission(
     assignment_id: str,
     submission_file: UploadFile = File(...),
@@ -70,7 +73,8 @@ async def add_submission(
             "submission": submission}
 
                 
-@router.post("/{assignment_id}/submissions/evaluate", dependencies=[Depends(check_student_role)])
+@router.post("/{assignment_id}/submissions/evaluate",
+             dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def evaluate_submission(
     assignment_id: str,
     current_user: Users = Depends(get_current_user)
@@ -103,13 +107,13 @@ async def evaluate_submission(
     return {"message": "ok",
             "score": total_points}
 
-@sub_router.get("/", dependencies=[Depends(check_student_role)])
+@sub_router.get("/", dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def get_submissions(current_user: Users = Depends(get_current_user)):
     """Получение списка всех решений"""
     return await SubmissionsService.find_all(user_id=current_user.id)
 
 
-@sub_router.get("/{submission_id}", dependencies=[Depends(check_student_role)])
+@sub_router.get("/{submission_id}", dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def get_submission(submission_id: str, current_user: Users = Depends(get_current_user)):
     """Получение конкретного решения"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=current_user.id)
@@ -117,7 +121,7 @@ async def get_submission(submission_id: str, current_user: Users = Depends(get_c
         raise SolutionNotFoundException
     return submission
 
-@sub_router.get("/{submission_id}/file", dependencies=[Depends(get_current_user)])
+@sub_router.get("/{submission_id}/file", dependencies=[Depends(refresh_token), Depends(get_current_user)])
 async def get_file_of_submission(submission_id: str, user_id: int):
     """Скачивание файла с решением"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id, user_id=user_id)
@@ -128,7 +132,7 @@ async def get_file_of_submission(submission_id: str, user_id: int):
                     media_type='application/x-jupyter-notebook',
                     headers={"Content-Disposition": f"attachment; filename={submission.submission_id}.ipynb"})
 
-@sub_router.delete("/{submission_id}", dependencies=[Depends(check_student_role)])
+@sub_router.delete("/{submission_id}", dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def delete_submission(submission_id: str, current_user: Users = Depends(get_current_user)):
     """Удаление решения"""
     submission = await SubmissionsService.find_one_or_none(id=submission_id,
