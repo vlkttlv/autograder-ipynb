@@ -4,9 +4,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.assignment.router import get_assignment, get_file_of_original_assignment, get_stats
 from app.assignment.service import AssignmentService
-from app.auth.dependencies import check_student_role, check_tutor_role, get_current_user, get_role
+from app.auth.dependencies import check_student_role, check_tutor_role, get_current_user
 from app.submissions.service import SubmissionFilesService, SubmissionsService
 from app.user.models import Users
+from app.user.router import refresh_token
 
 router = APIRouter(
     prefix="/pages",
@@ -29,7 +30,7 @@ async def login(request: Request):
 
 @router.get("/tutor-home",
             response_class=HTMLResponse,
-            dependencies=[Depends(check_tutor_role)])
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def tutor_home(request: Request, current_user: Users = Depends(get_current_user)):
     """Отображение главной страницы преподавателя"""
     assignments = await AssignmentService.find_all(user_id=current_user.id)
@@ -41,7 +42,8 @@ async def tutor_home(request: Request, current_user: Users = Depends(get_current
 
 
 @router.get("/assignments/{assignment_id}",
-            response_class=HTMLResponse)
+            response_class=HTMLResponse,
+            dependencies=[Depends(refresh_token)])
 async def assignment_page(request: Request,
                           assignment_id: str,
                           assignment = Depends(get_assignment),
@@ -80,7 +82,7 @@ async def assignment_page(request: Request,
 
 @router.get("/assignments/{assignment_id}/stats",
             response_class=HTMLResponse,
-            dependencies=[Depends(check_tutor_role)])
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def stats(request: Request,
                 assignment = Depends(get_assignment),
                 statistics = Depends(get_stats)):
@@ -96,7 +98,7 @@ async def stats(request: Request,
 
 @router.get("/assignments",
             response_class=HTMLResponse,
-            dependencies=[Depends(check_tutor_role)])
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def create_assignment_page(request: Request):
     today = date.today().isoformat()
     return templates.TemplateResponse("create.html", {"request": request, "today": today})
@@ -104,7 +106,7 @@ async def create_assignment_page(request: Request):
 
 @router.get("/assignments/{assignment_id}/edit",
             response_class=HTMLResponse,
-            dependencies=[Depends(check_tutor_role)])
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
 async def update_assignment_page(request: Request,
                                  assignment = Depends(get_assignment),
                                  file  = Depends(get_file_of_original_assignment)):
@@ -119,7 +121,7 @@ async def update_assignment_page(request: Request,
 
 @router.get("/student-home",
             response_class=HTMLResponse,
-            dependencies=[Depends(check_student_role)])
+            dependencies=[Depends(refresh_token), Depends(check_student_role)])
 async def student_home(request: Request, current_user: Users = Depends(get_current_user)):
     submissions = await SubmissionsService.find_all(user_id=current_user.id)
     return templates.TemplateResponse(
@@ -128,7 +130,9 @@ async def student_home(request: Request, current_user: Users = Depends(get_curre
     )
 
 
-@router.get("/instructions", response_class=HTMLResponse)
+@router.get("/instructions",
+            dependencies=[Depends(refresh_token)],
+            response_class=HTMLResponse)
 async def instructions(request: Request, current_user = Depends(get_current_user)):
     role = current_user.role
     return templates.TemplateResponse("instruction.html", {"request": request, "role": role})
