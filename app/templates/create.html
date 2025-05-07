@@ -1,9 +1,10 @@
-{% extends "base.html" %}
-
-{% block title %}Создать задание{% endblock %}
-
-{% block content %}
-
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Создать задание</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="/static/js/script.js"></script>
   <style>
     .body-base {
       background-color: #f7fafc;
@@ -130,7 +131,17 @@
       background-color: #dc2626;
     }
   </style>
-
+</head>
+<body class="body-base">
+  <nav class="nav-base">
+    <div class="nav-title">IPYNBGrader</div>
+    <div class="nav-actions">
+      <a href="/pages/tutor-home" class="home-link">Домой</a>
+      <form action="/auth/logout" method="post">
+        <button class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
   <main class="main-container">
     <h1 class="main-title">Создать новое задание</h1>
     <form id="assignment-form" class="space-y-4">
@@ -233,5 +244,15 @@
       }
     });
     </script>
-
-{% endblock %}
+  <footer class="bg-white border-t mt-12 py-4 text-center text-sm text-gray-500">
+    <div class="max-w-6xl mx-auto px-4">
+      <p>&copy; 2025 IPYNBGrader. Все права защищены.</p>
+      <p class="mt-1">
+        <a href="/pages/instructions" class="text-blue-600 hover:underline">Инструкция</a> |
+        <a href="/docs" class="text-blue-600 hover:underline">API</a> |
+        <a href="https://github.com/vlkttlv/autograder-ipynb" class="text-blue-600 hover:underline" target="_blank">GitHub</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

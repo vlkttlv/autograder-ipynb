@@ -1,41 +1,40 @@
-{% extends "base.html" %}
-
-{% block title %}{{ assignment.name or 'Задание' }}{% endblock %}
-
-{% block content %}
-
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-
+  <meta charset="UTF-8">
+  <title>{{ assignment.name or 'Задание' }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="/static/js/script.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      document.getElementById('delete-btn').addEventListener('click', async function() {
-        const assignmentId = "{{ assignment.id }}";
-        const assignmentName = "{{ assignment.name }}";
-  
-        const confirmed = confirm(`Вы уверены, что хотите удалить задание "${assignmentName}"?\nЭту операцию нельзя отменить. Вся информация, связанная с заданием, включая все оценки, будет удалена.`);
-  
-        if (!confirmed) {
-          return; // если пользователь нажал "Отмена", прекращаем выполнение
-        }
-  
-        try {
-          const response = await fetch(`/assignments/${assignmentId}`, {
-            method: 'DELETE',
-          });
-  
-          if (response.ok) {
-            window.location.href = '/pages/tutor-home';
-          } else {
-            const errorData = await response.json();
-            alert('Ошибка: ' + (errorData.detail || 'Не удалось удалить задание'));
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('delete-btn').addEventListener('click', async function() {
+          const assignmentId = "{{ assignment.id }}";
+          const assignmentName = "{{ assignment.name }}";
+    
+          const confirmed = confirm(`Вы уверены, что хотите удалить задание "${assignmentName}"?\nЭту операцию нельзя отменить. Вся информация, связанная с заданием, включая все оценки, будет удалена.`);
+    
+          if (!confirmed) {
+            return; // если пользователь нажал "Отмена", прекращаем выполнение
           }
-        } catch (error) {
-          console.error('Ошибка при удалении задания:', error);
-          alert('Произошла ошибка при удалении задания');
-        }
+    
+          try {
+            const response = await fetch(`/assignments/${assignmentId}`, {
+              method: 'DELETE',
+            });
+    
+            if (response.ok) {
+              window.location.href = '/pages/tutor-home';
+            } else {
+              const errorData = await response.json();
+              alert('Ошибка: ' + (errorData.detail || 'Не удалось удалить задание'));
+            }
+          } catch (error) {
+            console.error('Ошибка при удалении задания:', error);
+            alert('Произошла ошибка при удалении задания');
+          }
+        });
       });
-    });
-  </script>
+    </script>
   <style>
     .body-base {
       background-color: #f7fafc;
@@ -162,9 +161,17 @@
       background-color: #dc2626;
     }
   </style>
-
-
-
+</head>
+<body class="body-base">
+  <nav class="nav-base">
+    <div class="nav-title">IPYNBGrader</div>
+    <div class="nav-actions">
+      <a href="/pages/tutor-home" class="home-link">Домой</a>
+      <form action="/auth/logout" method="post">
+        <button class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
     <div class="assignment-details">
@@ -188,5 +195,15 @@
       </button>
     </div>
   </main>
-
-{% endblock %}
+  <footer class="bg-white border-t mt-12 py-4 text-center text-sm text-gray-500">
+    <div class="max-w-6xl mx-auto px-4">
+      <p>&copy; 2025 IPYNBGrader. Все права защищены.</p>
+      <p class="mt-1">
+        <a href="/pages/instructions" class="text-blue-600 hover:underline">Инструкция</a> |
+        <a href="/docs" class="text-blue-600 hover:underline">API</a> |
+        <a href="https://github.com/vlkttlv/autograder-ipynb" class="text-blue-600 hover:underline" target="_blank">GitHub</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

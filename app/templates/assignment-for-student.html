@@ -1,9 +1,10 @@
-{% extends "base.html" %}
-
-{% block title %}{{ assignment.name or 'Задание' }}{% endblock %}
-
-{% block content %}
+<!DOCTYPE html>
+<html lang="ru">
 <head>
+  <meta charset="UTF-8">
+  <title>{{ assignment.name or 'Задание' }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="/static/js/script.js"></script>
   <style>
     .body-base {
       background-color: #f7fafc;
@@ -131,7 +132,17 @@
     }
   </style>
 </head>
+</head>
 <body class="body-base">
+  <nav class="nav-base">
+    <div class="nav-title">IPYNBGrader</div>
+    <div class="nav-actions">
+      <a href="/pages/student-home" class="home-link">Домой</a>
+      <form action="/auth/logout" method="post">
+        <button class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
 
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
@@ -249,4 +260,4 @@
     </div>
   </footer>
 </body>
-{% endblock %}
+</html>

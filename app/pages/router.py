@@ -15,17 +15,6 @@ router = APIRouter(
 
 templates = Jinja2Templates(directory="app/templates")
 
-@router.get("/base")
-async def home(request: Request, current_role = Depends(get_role)):
-    tutor_role = False
-    if current_role == 'TUTOR':
-        tutor_role = True
-    return templates.TemplateResponse("base.html",
-                                      {"request": request,
-                                       "role": tutor_role,
-                                       "show_home_link": True })
-
-
 @router.get("/auth/register", response_class=HTMLResponse)
 async def register(request: Request):
     """Отображение страницы регистрации"""
@@ -47,8 +36,7 @@ async def tutor_home(request: Request, current_user: Users = Depends(get_current
     return templates.TemplateResponse(
         name="tutor-home.html",
         context={"request": request,
-                 "assignments": assignments,
-                 "show_home_link": False }
+                 "assignments": assignments,}
     )
 
 
@@ -63,7 +51,6 @@ async def assignment_page(request: Request,
         return templates.TemplateResponse("assignment.html", {
             "request": request,
             "assignment": assignment,
-            "show_home_link": True 
         })
     else:
         submission = await SubmissionsService.find_one_or_none(assignment_id=assignment_id,
@@ -87,7 +74,6 @@ async def assignment_page(request: Request,
             "due": due,
             "submission": submission,
             "submission_file": submission_file,
-            "show_home_link": True 
         })
 
 
@@ -104,7 +90,6 @@ async def stats(request: Request,
             "request": request,
             "assignment": assignment,
             "statistics": statistics,
-            "show_home_link": True
         }
     )
 
@@ -114,7 +99,7 @@ async def stats(request: Request,
             dependencies=[Depends(check_tutor_role)])
 async def create_assignment_page(request: Request):
     today = date.today().isoformat()
-    return templates.TemplateResponse("create.html", {"request": request, "today": today, "show_home_link": True})
+    return templates.TemplateResponse("create.html", {"request": request, "today": today})
 
 
 @router.get("/assignments/{assignment_id}/edit",
@@ -126,8 +111,7 @@ async def update_assignment_page(request: Request,
     return templates.TemplateResponse("edit_assignment.html",
                                       {"request": request,
                                        "assignment": assignment,
-                                       "file": file,
-                                       "show_home_link": True })
+                                       "file": file,})
 
 
 ### STUDENT ENDPOINTS
@@ -140,10 +124,11 @@ async def student_home(request: Request, current_user: Users = Depends(get_curre
     submissions = await SubmissionsService.find_all(user_id=current_user.id)
     return templates.TemplateResponse(
         name="student-home.html",
-        context={"request": request, "submissions": submissions, "show_home_link": False }
+        context={"request": request, "submissions": submissions}
     )
 
 
 @router.get("/instructions", response_class=HTMLResponse)
-async def instructions(request: Request):
-    return templates.TemplateResponse("instruction.html", {"request": request, "show_home_link": True})
+async def instructions(request: Request, current_user = Depends(get_current_user)):
+    role = current_user.role
+    return templates.TemplateResponse("instruction.html", {"request": request, "role": role})
