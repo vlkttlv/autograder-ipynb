@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Статистика: {{ assignment.name }}</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="/static/js/script.js"></script>
+{% extends "base.html" %}
+
+{% block title %}Статистика: {{ assignment.name }}{% endblock %}
+
+{% block content %}
+
   <style>
     .body-base {
       background-color: #f7fafc;
@@ -115,17 +114,7 @@
       background-color: #15803d;
     }
   </style>
-</head>
-<body class="body-base">
-    <nav class="nav-base">
-        <div class="nav-title">IPYNBGrader</div>
-        <div class="nav-actions">
-            <a href="/pages/tutor-home" class="home-link">Домой</a>
-            <form action="/auth/logout" method="post">
-                <button class="logout-button">Выйти</button>
-            </form>
-        </div>
-    </nav>
+
     <main class="main-container">
         <h1 class="main-title">Статистика по заданию: {{ assignment.name }}</h1>
         {% if statistics %}
@@ -164,5 +153,5 @@
             </a>
         </div>
     </main>
-</body>
-</html>
+
+{% endblock %}

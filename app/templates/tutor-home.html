@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Кабинет преподавателя</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="/static/js/script.js"></script>
+{% extends "base.html" %}
+
+{% block title %}Кабинет преподавателя{% endblock %}
+
+{% block content %}
+
   <style>
     .body-base {
         background-color: #f7fafc;
@@ -113,15 +112,7 @@
       }
   </style>
 </head>
-<body class="body-base">
-  <nav class="nav-base">
-    <div class="nav-title">IPYNBGrader</div>
-    <div class="nav-actions">
-      <form action="/auth/logout" method="post">
-        <button class="logout-button">Выйти</button>
-      </form>
-    </div>
-  </nav>
+
   <main class="main-container">
     <div class="main-header">
       <h1 class="main-title">Мои задания</h1>
@@ -154,5 +145,6 @@
       <p class="no-assignments">Пока заданий нет.</p>
     {% endif %}
   </main>
-</body>
+  
 </html>
+{% endblock %}
