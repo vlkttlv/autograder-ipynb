@@ -10,8 +10,8 @@ from alembic import context
 from app.db import Base
 from app.config import settings
 from app.user.models import Users, RefreshToken
-from app.assignment.models import Assignments
-from app.submissions.models import Submissions
+from app.assignment.models import Assignments, AssignmentFile
+from app.submissions.models import Submissions, SubmissionFiles
 
 config = context.config
 
