@@ -1,5 +1,5 @@
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.service.base import BaseService
 from app.submissions.models import Submissions, SubmissionFiles
 from app.db import async_session_maker
@@ -32,9 +32,28 @@ class SubmissionsService(BaseService):
     @classmethod
     async def get_statistics(cls, assignment_id: int):
         async with async_session_maker() as session:
-            stmt = select(cls.model).options(selectinload(Submissions.user)).where(cls.model.assignment_id == assignment_id)
+            # stmt = select(cls.model).options(selectinload(Submissions.user)).where(cls.model.assignment_id == assignment_id)
+            # res = await session.execute(stmt)
+            # return res.scalars().all()
+
+            # получаем список решений
+            stmt = (
+                select(cls.model)
+                .options(selectinload(Submissions.user))
+                .where(cls.model.assignment_id == assignment_id)
+            )
             res = await session.execute(stmt)
-            return res.scalars().all()
+            submissions = res.scalars().all()
+
+            # cчитаем средний балл
+            avg_stmt = select(func.avg(cls.model.score)).where(cls.model.assignment_id == assignment_id)
+            avg_res = await session.execute(avg_stmt)
+            avg_score = avg_res.scalar()
+
+            return {
+                "submissions": submissions,
+                "average_score": float(avg_score) if avg_score is not None else 0
+            }
         
 
 class SubmissionFilesService(BaseService):

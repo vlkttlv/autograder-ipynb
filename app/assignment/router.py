@@ -1,9 +1,12 @@
-import nbformat
 from datetime import date, time
 from typing import List, Optional
+import nbformat
 from nbclient import NotebookClient
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
-from app.assignment.schemas import AssignmentResponseSchema, AssignmentUpdateSchema, TypeOfAssignmentFile
+
+from app.assignment.schemas import (AssignmentResponseSchema,
+                                    AssignmentUpdateSchema,
+                                    TypeOfAssignmentFile)
 from app.assignment.utils import check_notebook, get_total_points_from_notebook, modify_notebook
 from app.assignment.service import AssignmentFileService, AssignmentService
 from app.submissions.service import SubmissionFilesService, SubmissionsService
@@ -14,6 +17,7 @@ from app.exceptions import (AssignmentNotFoundException,
                             WgongDateException)
 from app.user.models import Users
 from app.user.router import refresh_token
+
 
 router = APIRouter(prefix="/assignments", tags=['Assignments'])
 
@@ -153,8 +157,7 @@ async def update_files_of_assignment(assignment_id: str,
     
     client = NotebookClient(notebook)
     grade = get_total_points_from_notebook(client, notebook)
-    assignment = await AssignmentService.update(model_id=assignment_id,
-                                                           grade=grade)
+    await AssignmentService.update(model_id=assignment_id, grade=grade)
 
 @router.delete("/{assignment_id}", status_code=204,
                dependencies=[Depends(refresh_token)])

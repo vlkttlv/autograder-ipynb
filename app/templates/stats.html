@@ -70,6 +70,13 @@
       color: #1f2937;
     }
 
+    .avg-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      color: #1f2937;
+    }
+
     .stats-table {
       width: 100%;
       table-layout: auto;
@@ -129,6 +136,7 @@
     <main class="main-container">
         <h1 class="main-title">Статистика по заданию: {{ assignment.name }}</h1>
         {% if statistics %}
+        <h3 class="avg-title">Средний балл по заданию: {{ avg_score }}</h3>
             <table class="stats-table">
                 <thead>
                     <tr class="table-header">

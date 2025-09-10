@@ -91,7 +91,8 @@ async def stats(request: Request,
         {
             "request": request,
             "assignment": assignment,
-            "statistics": statistics,
+            "statistics": statistics["submissions"],
+            "avg_score": statistics["average_score"]
         }
     )
 
