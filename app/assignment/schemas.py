@@ -23,3 +23,7 @@ class AssignmentUpdateSchema(AssignmentBaseSchema):
 class TypeOfAssignmentFile(str, Enum):
     ORIGINAL = "ORIGINAL"
     MODIFIED = "MODIFIED"
+
+class ExportMethod(str, Enum):
+    CSV = "csv"
+    XLSX = "xlsx"

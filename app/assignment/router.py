@@ -1,11 +1,15 @@
+import csv
 from datetime import date, time
+import io
 from typing import List, Optional
+from fastapi.responses import StreamingResponse
 import nbformat
 from nbclient import NotebookClient
+from openpyxl import Workbook
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 
 from app.assignment.schemas import (AssignmentResponseSchema,
-                                    AssignmentUpdateSchema,
+                                    AssignmentUpdateSchema, ExportMethod,
                                     TypeOfAssignmentFile)
 from app.assignment.utils import check_notebook, get_total_points_from_notebook, modify_notebook
 from app.assignment.service import AssignmentFileService, AssignmentService
@@ -181,6 +185,57 @@ async def get_stats(assignment_id: str):
         raise AssignmentNotFoundException
     stats = await SubmissionsService.get_statistics(assignment_id=assignment_id)
     return stats
+
+
+@router.get("{assignment_id}/stats/csv",
+            dependencies=[Depends(refresh_token), Depends(check_tutor_role)])
+async def get_stats_to_csv(assignment_id: str,
+                           method: ExportMethod):
+    """Выгрузка статистики в csv/excel"""
+    stats = await get_stats(assignment_id)
+    stat = stats['submissions']
+    headers = ["Студент", "Почта", "Количество попыток", "Баллы"]
+
+    if method == ExportMethod.CSV:
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow(headers)
+        for student in stat:
+            writer.writerow([
+                student.user.last_name + " " +student.user.first_name,
+                student.user.email,
+                student.number_of_attempts,
+                student.score,
+            ])
+        output.seek(0)
+        return StreamingResponse(
+            output,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=stats_{assignment_id}.csv"}
+        )
+
+    elif method == ExportMethod.XLSX:
+        output = io.BytesIO()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Статистика"
+        ws.append(headers)
+        for student in stat:
+            ws.append([
+                student.user.last_name + " " + student.user.first_name,
+                student.user.email,
+                student.number_of_attempts,
+                student.score,
+
+            ])
+        wb.save(output)
+        output.seek(0)
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=stats_{assignment_id}.xlsx"}
+        )
+
 
 @router.post("/process")
 async def process(assignment_file: UploadFile = File(...)):
