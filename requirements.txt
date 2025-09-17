@@ -16,6 +16,7 @@ debugpy==1.8.14
 decorator==5.2.1
 dnspython==2.7.0
 email_validator==2.2.0
+et_xmlfile==2.0.0
 executing==2.2.0
 fastapi==0.115.11
 fastjsonschema==2.21.1
@@ -45,6 +46,7 @@ nbformat==5.10.4
 nest-asyncio==1.6.0
 numpy==2.2.4
 onedrivesdk==2.0.1
+openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
 parso==0.8.4
@@ -70,6 +72,7 @@ pyzmq==26.3.0
 referencing==0.36.2
 requests==2.31.0
 rpds-py==0.23.1
+ruff==0.13.0
 shipyard-bp-utils==1.2.1
 shipyard-templates==0.9.0
 six==1.17.0
