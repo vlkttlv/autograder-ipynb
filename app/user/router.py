@@ -1,18 +1,25 @@
+import jwt
 import logging
 from fastapi import APIRouter, Depends, Response
-import jwt
-from app.exceptions import (IncorrectEmailOrPasswordException,
-                            IncorrectTokenFormatException,
-                            UserAlreadyExistsException)
+from app.exceptions import (
+    IncorrectEmailOrPasswordException,
+    IncorrectTokenFormatException,
+    UserAlreadyExistsException,
+)
 from app.user.models import Users
-from app.user.schemas import (UserBaseSchema,
-                              UserRegisterSchema,
-                              UserResponseSchema,
-                              UserRole, UserTestRegisterSchemas)
-from app.auth.auth import (authenticate_user,
-                            create_access_token,
-                            create_refresh_token,
-                            get_password_hash)
+from app.user.schemas import (
+    UserBaseSchema,
+    UserRegisterSchema,
+    UserResponseSchema,
+    UserRole,
+    UserTestRegisterSchemas,
+)
+from app.auth.auth import (
+    authenticate_user,
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+)
 from app.auth.dependencies import get_current_user, get_refresh_token
 from app.user.service import TokenService, UsersService
 from app.config import settings
@@ -21,10 +28,7 @@ from app.logger import configure_logging
 logger = logging.getLogger(__name__)
 configure_logging()
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["Auth"]
-)
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", status_code=201, summary="Creates a new user")
@@ -34,11 +38,13 @@ async def register_user(user_data: UserRegisterSchema):
     if existing_user:
         raise UserAlreadyExistsException
     hashed_password = get_password_hash(user_data.password)
-    await UsersService.add(email=user_data.email,
-                       first_name=user_data.first_name,
-                       last_name=user_data.last_name,
-                       hashed_password=hashed_password,
-                       role=UserRole.STUDENT)
+    await UsersService.add(
+        email=user_data.email,
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        hashed_password=hashed_password,
+        role=UserRole.STUDENT,
+    )
     logger.info("Пользователь зарегистрировался")
     return {"message": "Пользователь успешно зарегистрирован"}
 
@@ -53,32 +59,52 @@ async def login_user(response: Response, user_data: UserBaseSchema):
     refresh_token = await create_refresh_token({"sub": str(user.id), "role": user.role})
     response.set_cookie("access_token", access_token, httponly=True)
     logger.info(f"Пользователь {user.email} залогинился")
-    return {"access_token": access_token,
-            "refresh_token": refresh_token}
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 @router.post("/logout", summary="Deletes tokens")
-async def logout_user(response: Response, current_user = Depends(get_current_user)):
+async def logout_user(response: Response, current_user=Depends(get_current_user)):
     """Выход из системы"""
     response.delete_cookie("access_token")
-    await TokenService.delete(user_id=current_user.id) # удаляем refresh токен
+    await TokenService.delete(user_id=current_user.id)  # удаляем refresh токен
+
 
 @router.post("/test", summary="Creates the test users")
 async def create_test_users():
     """Создание тестовых пользователей"""
     users_data = [
-        UserTestRegisterSchemas(email="student@example.com",password="password", first_name='Студент', last_name='Тестовый', role=UserRole.STUDENT),
-        UserTestRegisterSchemas(email="tutor@example.com", password="password", first_name='Преподаватель', last_name='Тестовый', role=UserRole.TUTOR),
-        UserTestRegisterSchemas(email="admin@example.com", password="password", first_name='Администратор', last_name='Тестовый', role=UserRole.ADMIN),
+        UserTestRegisterSchemas(
+            email="student@example.com",
+            password="password",
+            first_name="Студент",
+            last_name="Тестовый",
+            role=UserRole.STUDENT,
+        ),
+        UserTestRegisterSchemas(
+            email="tutor@example.com",
+            password="password",
+            first_name="Преподаватель",
+            last_name="Тестовый",
+            role=UserRole.TUTOR,
+        ),
+        UserTestRegisterSchemas(
+            email="admin@example.com",
+            password="password",
+            first_name="Администратор",
+            last_name="Тестовый",
+            role=UserRole.ADMIN,
+        ),
     ]
-    
+
     for user_data in users_data:
         hashed_password = get_password_hash(user_data.password)
-        await UsersService.add(email=user_data.email,
-                               hashed_password=hashed_password,
-                               first_name=user_data.first_name,
-                               last_name=user_data.last_name,
-                               role=user_data.role)
+        await UsersService.add(
+            email=user_data.email,
+            hashed_password=hashed_password,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            role=user_data.role,
+        )
     logger.info("Были созданы тестовые пользователи")
     return {"message": "Тестовые пользователи успешно созданы"}
 
@@ -100,7 +126,9 @@ async def refresh_token(response: Response, refresh: str = Depends(get_refresh_t
     return {"access_token": new_access_token}
 
 
-@router.get("/me", summary="Returns the info about user", response_model=UserResponseSchema)
+@router.get(
+    "/me", summary="Returns the info about user", response_model=UserResponseSchema
+)
 async def get_user(current_user: Users = Depends(get_current_user)):
     """Получение информации о пользователе"""
     return current_user

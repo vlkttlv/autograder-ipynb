@@ -25,6 +25,9 @@ class UserTestRegisterSchemas(UserRegisterSchema):
     role: UserRole
 
     
-class UserResponseSchema(UserRegisterSchema):
+class UserResponseSchema(BaseModel):
     id: int
     role: UserRole
+    first_name: str
+    last_name: str
+

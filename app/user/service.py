@@ -3,8 +3,9 @@ from app.service.base import BaseService
 from app.user.models import RefreshToken, Users
 from app.db import async_session_maker
 
+
 class UsersService(BaseService):
-    
+
     model = Users
 
 
@@ -25,8 +26,10 @@ class TokenService(BaseService):
             token: токен
         """
         async with async_session_maker() as session:
-            stmt = update(cls.model).where(cls.model.user_id == user_id).values(created_at=created_at,
-                                                                                expires_at=expires_at,
-                                                                                token=token)
+            stmt = (
+                update(cls.model)
+                .where(cls.model.user_id == user_id)
+                .values(created_at=created_at, expires_at=expires_at, token=token)
+            )
             await session.execute(stmt)
             await session.commit()
