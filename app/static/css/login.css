@@ -1,0 +1,74 @@
+/* Общие стили для страницы */
+.login-body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9fafb; /* bg-gray-50 */
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 5rem; /* mt-20 */
+}
+
+/* Контейнер формы */
+.login-container {
+  max-width: 28rem; /* max-w-md */
+  width: 100%;
+  background-color: #ffffff;
+  padding: 1.5rem; /* p-6 */
+  border-radius: 0.5rem; /* rounded */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* shadow */
+}
+
+/* Заголовок */
+.login-title {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 600; /* font-semibold */
+  text-align: center;
+  margin-bottom: 1.5rem; /* mb-6 */
+}
+
+/* Метки для input */
+.login-label {
+  display: block;
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+/* Инпуты */
+.login-input {
+  width: 100%;
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-radius: 0.25rem; /* rounded */
+  margin-bottom: 1rem; /* mb-4 */
+  box-sizing: border-box;
+}
+
+/* Кнопка */
+.login-button {
+  width: 100%;
+  background-color: #2563eb; /* bg-blue-600 */
+  color: #ffffff;
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.login-button:hover {
+  background-color: #1d4ed8; /* hover:bg-blue-700 */
+}
+
+/* Подвал с ссылкой */
+.login-footer {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.login-link {
+  color: #2563eb; /* text-blue-600 */
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}

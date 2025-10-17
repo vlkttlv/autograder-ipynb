@@ -1,15 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>Авторизация</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/login.css') }}">
 </head>
 <body class="bg-gray-50 min-h-screen">
   <div class="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow">
@@ -33,54 +29,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
-<script>
-  const form = document.getElementById('login-form');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const formData = {
-      email: form.email.value,
-      password: form.password.value,
-    };
-
-    try {
-      const response = await fetch('/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData),
-        credentials: 'include' // обязательно, чтобы cookie пришли
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Сохраняем refresh_token
-        localStorage.setItem('refresh_token', data.refresh_token);
-
-        // Декодируем access_token, чтобы вытащить роль
-        const decodedToken = jwt_decode(data.access_token);
-        const userRole = decodedToken.role;
-
-        if (userRole === 'STUDENT') {
-          window.location.href = '/pages/student-home';
-        } else if (userRole === 'TUTOR') {
-          window.location.href = '/pages/tutor-home';
-        } 
-        // else {
-        //   alert('Неизвестная роль пользователя');
-        // }
-      } else {
-        alert(data.detail || 'Ошибка при авторизации');
-      }
-    } catch (error) {
-      console.error('Ошибка:', error);
-      alert('Ошибка при подключении к серверу');
-    }
-  });
-</script>
-
+  <script src="{{ url_for('static', path='js/login.js') }}"></script>
 </body>
 </html>

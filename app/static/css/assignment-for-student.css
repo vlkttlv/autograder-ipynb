@@ -87,6 +87,25 @@
 
 .back-button:hover { background-color: #15803d; }
 
+.submit-btn {
+  background-color: #3b82f6;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover { background-color: #2563eb; }
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
 .edit-button {
   background-color: #38a5ff;
   color: #ffffff;

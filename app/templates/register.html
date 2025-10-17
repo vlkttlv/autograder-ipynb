@@ -1,78 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registration</title>
+  <title>Регистрация</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/login.css') }}">
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <div class="max-w-md mx-auto mt-20 bg-white p-6 rounded shadow">
-    <h2 class="text-2xl font-semibold text-center mb-6">Регистрация</h2>
+<body class="login-body">
+  <div class="login-container">
+    <h2 class="login-title">Регистрация</h2>
 
-    <form id="registration-form">
-      <label for="email" class="block mb-2">Почта</label>
-      <input type="email" id="email" name="email" class="w-full px-4 py-2 border rounded mb-4" required />
+    <form id="register-form" class="login-form">
+      <label for="first_name" class="login-label">Имя</label>
+      <input type="text" id="first_name" name="first_name" class="login-input" required />
 
-      
-      <label for="first_name" class="block mb-2">Имя</label>
-      <input type="text" id="first_name" name="first_name" class="w-full px-4 py-2 border rounded mb-4" required />
-      
-      <label for="last_name" class="block mb-2">Фамилия</label>
-      <input type="text" id="last_name" name="last_name" class="w-full px-4 py-2 border rounded mb-4" required />
-      
-      <label for="password" class="block mb-2">Пароль</label>
-      <input type="password" id="password" name="password" class="w-full px-4 py-2 border rounded mb-4" required />
-      
-      <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      <label for="last_name" class="login-label">Фамилия</label>
+      <input type="text" id="last_name" name="last_name" class="login-input" required />
+
+      <label for="email" class="login-label">Почта</label>
+      <input type="email" id="email" name="email" class="login-input" required />
+
+      <label for="password" class="login-label">Пароль</label>
+      <input type="password" id="password" name="password" class="login-input" required />
+
+      <!-- <label for="role" class="login-label">Роль</label>
+      <select id="role" name="role" class="login-input" required>
+        <option value="" disabled selected>Выберите роль</option>
+        <option value="STUDENT">Студент</option>
+        <option value="TUTOR">Преподаватель</option>
+      </select>
+
+      <div id="student-group-container" style="display: none;">
+        <label for="group" class="login-label">Группа</label>
+        <input type="text" id="group" name="group" class="login-input" />
+      </div> -->
+
+      <button type="submit" class="login-button">
         Зарегистрироваться
       </button>
     </form>
 
-    <div class="mt-4 text-center">
-      <p>Уже есть аккаунт? <a href="login" class="text-blue-600 hover:underline">Войти</a></p>
+    <div class="login-footer">
+      <p>Уже есть аккаунт? <a href="login" class="login-link">Войти</a></p>
     </div>
   </div>
 
-  <script>
-    const form = document.getElementById('registration-form');
-  
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-  
-      const formData = {
-        email: form.email.value,
-        first_name: form.first_name.value,
-        last_name: form.last_name.value,
-        password: form.password.value,
-      };
-  
-      try {
-        const response = await fetch('/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        });
-  
-        const data = await response.json();
-  
-        if (response.ok) {
-          window.location.href = 'login';
-        } else {
-          alert(data.detail || 'Ошибка при регистрации');
-        }
-      } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Ошибка при подключении к серверу');
-      }
-    });
-  </script>  
+  <script src="{{ url_for('static', path='js/register.js') }}"></script>
 </body>
 </html>
