@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, LargeBinary
+from sqlalchemy import JSON, ForeignKey, Integer, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -14,6 +14,7 @@ class Submissions(Base):
     assignment_id: Mapped[UUID] = mapped_column(ForeignKey('assignments.id'))
     score: Mapped[int] = mapped_column(Integer)
     number_of_attempts: Mapped[int]
+    feedback: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Связи с другими таблицами
     user = relationship("Users", back_populates="submission")
