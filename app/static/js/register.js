@@ -1,46 +1,68 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.getElementById('register-form');
-  const roleSelect = document.getElementById('role');
-  const groupContainer = document.getElementById('student-group-container');
+document.addEventListener("DOMContentLoaded", () => {
+  const studentBtn = document.getElementById("student-btn");
+  const tutorBtn = document.getElementById("tutor-btn");
+  const roleInput = document.getElementById("role");
+  const groupContainer = document.getElementById("student-group-container");
+  const registerForm = document.getElementById("register-form");
 
-  roleSelect.addEventListener('change', () => {
-    if (roleSelect.value === 'STUDENT') {
-      groupContainer.style.display = 'block';
-    } else {
-      groupContainer.style.display = 'none';
-    }
+  // 🔹 Переключение ролей
+  studentBtn.addEventListener("click", () => {
+    studentBtn.classList.add("active");
+    tutorBtn.classList.remove("active");
+    roleInput.value = "STUDENT";
+    groupContainer.style.display = "block";
   });
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  tutorBtn.addEventListener("click", () => {
+    tutorBtn.classList.add("active");
+    studentBtn.classList.remove("active");
+    roleInput.value = "TUTOR";
+    groupContainer.style.display = "none";
+  });
 
-    const formData = {
-      first_name: form.first_name.value,
-      last_name: form.last_name.value,
-      email: form.email.value,
-      password: form.password.value,
-      role: form.role.value,
-      group: form.role.value === 'STUDENT' ? form.group.value : null
-    };
+  // 🔹 Отправка формы
+  registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    // Убираем старое сообщение об ошибке
+    let errorDiv = document.getElementById("form-error");
+    if (!errorDiv) {
+      errorDiv = document.createElement("div");
+      errorDiv.id = "form-error";
+      errorDiv.classList.add("text-red-600", "mb-4", "text-center", "font-medium");
+      registerForm.prepend(errorDiv); // вставляем сверху формы
+    }
+    errorDiv.textContent = ""; // очищаем
+
+    const formData = new FormData(registerForm);
+    const data = Object.fromEntries(formData.entries());
+    if (data.role !== "STUDENT") data.group = null;
 
     try {
-      const response = await fetch('/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const response = await fetch("/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Регистрация успешна! Войдите в систему.');
-        window.location.href = '/login';
-      } else {
-        alert(data.detail || 'Ошибка при регистрации');
+      if (!response.ok) {
+        const errorData = await response.json();
+        // Выводим единое сообщение для всех ошибок
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          errorDiv.textContent = "Проверьте корректность введенных данных";
+        } else {
+          errorDiv.textContent = errorData.detail || "Произошла ошибка при регистрации";
+        }
+        return;
       }
-    } catch (error) {
-      console.error('Ошибка:', error);
-      alert('Ошибка при подключении к серверу');
+
+      alert("Регистрация успешна!");
+      window.location.href = "/pages/auth/login";
+
+    } catch (err) {
+      console.error("Ошибка:", err);
+      errorDiv.textContent = "Произошла ошибка при регистрации";
     }
   });
+
 });
