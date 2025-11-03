@@ -44,18 +44,18 @@ class IncorrectFormatAssignmentException(AutograderException):
 
 
 class NotFoundSolutionsInAssignmentException(AutograderException):
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = "Не найдены решения"
 
 
 class NotFoundTestsInAssignmentException(AutograderException):
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = "Не найдены скрытые тесты"
 
 
 class IncorrectRoleException(AutograderException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    detail = "Некоректная роль"
+    status_code = status.HTTP_403_FORBIDDEN
+    detail = "Некорректная роль"
 
 
 class SyntaxException(AutograderException):
