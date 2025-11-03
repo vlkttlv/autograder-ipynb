@@ -55,13 +55,14 @@
     {% endif %}
 
     <div class="back-button-container flex justify-center gap-4 mt-8">
-      <a href="/pages/assignments/{{ assignment.id }}" class="back-button">
+      <a href="/pages/assignments/{{ assignment.id }}?page={{ current_page }}&sort={{ sort }}{% if search %}&search={{ search }}{% endif %}" class="back-button">
         Вернуться к заданию
       </a>
-      <a href="/pages/tutor-home?page={{ request.query_params.get('page', 1) }}" class="back-tutorhome-button">
+      <a href="/pages/tutor-home?page={{ current_page }}&sort={{ sort }}{% if search %}&search={{ search }}{% endif %}" class="back-tutorhome-button">
         Вернуться к списку заданий
       </a>
     </div>
+
   </main>
 
   <footer class="bg-white border-t mt-12 py-4 text-center text-sm text-gray-500">

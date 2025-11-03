@@ -11,30 +11,35 @@
   <div class="login-container">
     <h2 class="login-title">Регистрация</h2>
 
+    <!-- 🔹 Переключатель роли -->
+    <div class="role-toggle">
+      <button type="button" id="student-btn" class="role-btn active">Студент</button>
+      <button type="button" id="tutor-btn" class="role-btn">Преподаватель</button>
+    </div>
+
     <form id="register-form" class="login-form">
+      <input type="hidden" id="role" name="role" value="STUDENT">
+
       <label for="first_name" class="login-label">Имя</label>
-      <input type="text" id="first_name" name="first_name" class="login-input" required />
+      <input type="text" id="first_name" name="first_name" class="login-input" required>
 
       <label for="last_name" class="login-label">Фамилия</label>
-      <input type="text" id="last_name" name="last_name" class="login-input" required />
+      <input type="text" id="last_name" name="last_name" class="login-input" required>
 
       <label for="email" class="login-label">Почта</label>
-      <input type="email" id="email" name="email" class="login-input" required />
+      <input type="email" id="email" name="email" class="login-input" required>
 
       <label for="password" class="login-label">Пароль</label>
-      <input type="password" id="password" name="password" class="login-input" required />
+      <input type="password" id="password" name="password" class="login-input" required>
 
-      <!-- <label for="role" class="login-label">Роль</label>
-      <select id="role" name="role" class="login-input" required>
-        <option value="" disabled selected>Выберите роль</option>
-        <option value="STUDENT">Студент</option>
-        <option value="TUTOR">Преподаватель</option>
-      </select>
-
-      <div id="student-group-container" style="display: none;">
+      <!-- 🔹 Поле группы (только для студента) -->
+      <div id="student-group-container">
         <label for="group" class="login-label">Группа</label>
-        <input type="text" id="group" name="group" class="login-input" />
-      </div> -->
+        <input type="text" id="group" name="group" class="login-input" placeholder="Например, 8В34">
+      </div>
+      <div id="form-error" class="text-red-600 font-medium mb-4 hidden"></div>
+
+      <div id="form-error" class="text-red-600 font-medium mb-4 hidden"></div>
 
       <button type="submit" class="login-button">
         Зарегистрироваться
