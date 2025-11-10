@@ -1,87 +1,138 @@
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional, Any
 from app.db import async_session_maker
 
 
 class BaseService:
-
-    """Базовый класс для работы с БД"""
+    """Базовый класс для работы с БД с поддержкой транзакций"""
 
     model = None
 
     @classmethod
-    async def find_one_or_none(cls, **filter_by):
+    async def find_one_or_none(cls, session: AsyncSession | None = None, **filter_by) -> Optional[Any]:
         """
         Находит и возвращает одну запись из таблицы в БД
-
-        -Аргументы:
-            **filter_by: атрибуты модели в качестве ключей и их значения в качестве значений.
-        -Возвращает:
-            Optional[cls.model]: Экземпляр модели, если запись найдена.
-            Если запись не найдена, возвращается None.
+        
+        Args:
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **filter_by: Атрибуты модели для фильтрации
+            
+        Returns:
+            Optional[cls.model]: Экземпляр модели или None
         """
-        async with async_session_maker() as session:
+        if session:
+            # Используем переданную сессию
             stmt = select(cls.model).filter_by(**filter_by)
             res = await session.execute(stmt)
             return res.scalar_one_or_none()
+        else:
+            # Создаем новую сессию
+            async with async_session_maker() as new_session:
+                stmt = select(cls.model).filter_by(**filter_by)
+                res = await new_session.execute(stmt)
+                return res.scalar_one_or_none()
 
     @classmethod
-    async def find_all(cls, **filter_by):
+    async def find_all(cls, session: AsyncSession | None = None, **filter_by) -> List[Any]:
         """
-        Находит и возвращает несколько записей из таблицы БД, соответствующие условиям
-
-        -Аргументы:
-            **filter_by: атрибуты модели в качестве ключей и их значения в качестве значений.
-        -Пример:
-            await Users.find_all(name='John', age=30)
-            Вернет все записи, где name равно 'John' и age равно 30.
-        -Возвращает:
-            List[cls.model]: Список экземпляров модели, удовлетворяющих условиям фильтрации.
-            Если записи не найдены, возвращается пустой список.
+        Находит и возвращает несколько записей из таблицы БД
+        
+        Args:
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **filter_by: Атрибуты модели для фильтрации
+            
+        Returns:
+            List[cls.model]: Список экземпляров модели
         """
-        async with async_session_maker() as session:
+        if session:
             stmt = select(cls.model).filter_by(**filter_by)
             res = await session.execute(stmt)
             return res.scalars().all()
+        else:
+            async with async_session_maker() as new_session:
+                stmt = select(cls.model).filter_by(**filter_by)
+                res = await new_session.execute(stmt)
+                return res.scalars().all()
 
     @classmethod
-    async def add(cls, **data):
+    async def add(cls, session: AsyncSession | None = None, **data) -> Any:
         """
         Добавляет запись в таблицу БД
-
-        -Аргументы:
-            **data: атрибуты модели в качестве ключей и их значения в качестве значений.
-        - Возвращает:
-            MyModel
+        
+        Args:
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **data: Данные для создания записи
+            
+        Returns:
+            ID созданной записи
         """
-        async with async_session_maker() as session:
+        if session:
             stmt = insert(cls.model).values(**data).returning(cls.model.id)
             res = await session.execute(stmt)
-            await session.commit()
             return res.scalar()
+        else:
+            async with async_session_maker() as new_session:
+                async with new_session.begin():
+                    stmt = insert(cls.model).values(**data).returning(cls.model.id)
+                    res = await new_session.execute(stmt)
+                    return res.scalar()
 
     @classmethod
-    async def delete(cls, **filter_by):
+    async def delete(cls, session: AsyncSession | None = None, **filter_by) -> None:
         """
-        Удаляет запись из таблицы БД по соотвествующему условию
-
-        -Аргументы:
-        **filter_by: атрибуты модели в качестве ключей и их значения в качестве значений.
+        Удаляет запись из таблицы БД
+        
+        Args:
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **filter_by: Условия для удаления
         """
-        async with async_session_maker() as session:
+        if session:
             stmt = delete(cls.model).filter_by(**filter_by)
             await session.execute(stmt)
-            await session.commit()
+        else:
+            async with async_session_maker() as new_session:
+                async with new_session.begin():
+                    stmt = delete(cls.model).filter_by(**filter_by)
+                    await new_session.execute(stmt)
 
     @classmethod
-    async def update(cls, model_id: int, **data):
+    async def update(cls, model_id: int, session: AsyncSession | None = None, **data) -> None:
         """
-        Обновляет запись
-
-        -Аргументы:
-            model_id: ID записи, которую надо обновить
-            **data: атрибуты модели в качестве ключей и их значения в качестве значений.
+        Обновляет запись в таблице БД
+        
+        Args:
+            model_id: ID записи для обновления
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **data: Данные для обновления
         """
-        async with async_session_maker() as session:
+        if session:
             stmt = update(cls.model).where(cls.model.id == model_id).values(**data)
             await session.execute(stmt)
-            await session.commit()
+        else:
+            async with async_session_maker() as new_session:
+                async with new_session.begin():
+                    stmt = update(cls.model).where(cls.model.id == model_id).values(**data)
+                    await new_session.execute(stmt)
+
+    @classmethod
+    async def count(cls, session: AsyncSession | None = None, **filter_by) -> int:
+        """
+        Подсчитывает количество записей, удовлетворяющих условиям
+        
+        Args:
+            session: Существующая сессия для работы в транзакции. Если None - создается новая.
+            **filter_by: Условия для подсчета
+            
+        Returns:
+            int: Количество записей
+        """
+        if session:
+            stmt = select(cls.model).filter_by(**filter_by)
+            res = await session.execute(select(cls.model.id).select_from(stmt.subquery()))
+            return len(res.all())
+        else:
+            async with async_session_maker() as new_session:
+                stmt = select(cls.model).filter_by(**filter_by)
+                res = await new_session.execute(select(cls.model.id).select_from(stmt.subquery()))
+                return len(res.all())
