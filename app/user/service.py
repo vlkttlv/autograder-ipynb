@@ -1,12 +1,16 @@
 from sqlalchemy import update
 from app.service.base import BaseService
-from app.user.models import RefreshToken, Users
+from app.user.models import RefreshToken, Users, Groups
 from app.db import async_session_maker
 
 
 class UsersService(BaseService):
 
     model = Users
+
+class GroupsService(BaseService):
+
+    model = Groups
 
 
 class TokenService(BaseService):
