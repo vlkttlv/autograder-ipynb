@@ -21,7 +21,7 @@ from app.auth.auth import (
     get_password_hash,
 )
 from app.auth.dependencies import get_current_user, get_refresh_token
-from app.user.service import TokenService, UsersService
+from app.user.service import GroupsService, TokenService, UsersService
 from app.config import settings
 from app.logger import configure_logging
 
@@ -38,12 +38,22 @@ async def register_user(user_data: UserRegisterSchema):
     if existing_user:
         raise UserAlreadyExistsException
     hashed_password = get_password_hash(user_data.password)
+    
+    group_id = None
+    if user_data.role == UserRole.STUDENT:
+        find_group = await GroupsService.find_one_or_none(name=user_data.group)
+        if not find_group:
+            group_id = await GroupsService.add(name=user_data.group)
+        else:
+            group_id = find_group.id
+
     await UsersService.add(
         email=user_data.email,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         hashed_password=hashed_password,
-        role=UserRole.STUDENT,
+        role=user_data.role,
+        group_id=group_id,
     )
     logger.info("Пользователь зарегистрировался")
     return {"message": "Пользователь успешно зарегистрирован"}

@@ -57,3 +57,7 @@ class UserResponseSchema(BaseModel):
     first_name: str
     last_name: str
 
+
+class CompleteProfileSchema(BaseModel):
+    role: str
+    group: str | None = None
