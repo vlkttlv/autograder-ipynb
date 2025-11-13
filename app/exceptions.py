@@ -68,6 +68,11 @@ class AssignmentNotFoundException(AutograderException):
     detail = "Задание не найдено"
 
 
+class DisciplineNotFoundException(AutograderException):
+    status_code = status.HTTP_404_NOT_FOUND
+    detail = "Дисциплина не найдена"
+
+
 class DeadlineException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Дедлайн сгорел или еще не начался"
