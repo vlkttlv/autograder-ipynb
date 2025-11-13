@@ -5,7 +5,7 @@ from app.submissions.models import SubmissionFiles, Submissions
 
 
 class UsersAdmin(ModelView, model=Users):
-    column_list = [Users.id, Users.first_name, Users.last_name, Users.email, Users.role, Users.group_id, Users.group]
+    column_list = [Users.id, Users.first_name, Users.last_name, Users.email, Users.role, Users.group, Users.disciplines, Users.google_id, Users.google_token]
     column_details_exclude_list = [Users.hashed_password]
     name = "Пользователь"
     name_plural = "Пользователи"
