@@ -18,6 +18,7 @@ class AssignmentResponseSchema(AssignmentBaseSchema):
     id: UUID
     user_id: int
     grade: int
+    discipline_id: int
 
 
 class AssignmentUpdateSchema(AssignmentBaseSchema):
@@ -42,3 +43,24 @@ class AssignmentListResponse(BaseModel):
 class SortEnum(str, Enum):
     newest = "newest"
     oldest = "oldest"
+
+class UserStatsResponse(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    group_id: int
+
+class SubmissionStatsResponse(BaseModel):
+    id: UUID
+    user_id: int
+    assignment_id: UUID
+    score: int
+    number_of_attempts: int
+    feedback: list
+    user: UserStatsResponse
+
+class StatsResponse(BaseModel):
+    submissions: list[SubmissionStatsResponse]
+    average_score: float
+    total: int
