@@ -1,12 +1,17 @@
 from datetime import datetime
+from fastapi.responses import RedirectResponse
 import jwt
 from fastapi import Depends, HTTPException, Request
+
 # from jwt import PyJWKError
 from app.config import settings
-from app.exceptions import (IncorrectRoleException, IncorrectTokenFormatException,
-                            TokenAbsentException,
-                            TokenExpiredException,
-                            UserIsNotPresentException)
+from app.exceptions import (
+    IncorrectRoleException,
+    IncorrectTokenFormatException,
+    TokenAbsentException,
+    TokenExpiredException,
+    UserIsNotPresentException,
+)
 from app.user.service import TokenService, UsersService
 
 
@@ -17,11 +22,14 @@ def get_token(request: Request):
         raise TokenAbsentException
     return token
 
+
 async def get_refresh_token(token: str = Depends(get_token)):
     """Метод, получающий refresh токен"""
     # декодируем текущий access токен без проверки подписи и времени
     try:
-        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
+        payload = jwt.decode(
+            token, options={"verify_signature": False, "verify_exp": False}
+        )
     except Exception as e:
         raise IncorrectTokenFormatException from e
     user_id: str = payload.get("sub")
@@ -39,9 +47,7 @@ async def get_refresh_token(token: str = Depends(get_token)):
 async def get_current_user(token: str = Depends(get_token)):
     """Возвращает текущего пользователя"""
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, settings.ALGORITHM
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
     except Exception as e:
         raise IncorrectTokenFormatException from e
     expire: str = payload.get("exp")
@@ -50,20 +56,21 @@ async def get_current_user(token: str = Depends(get_token)):
     user_id: str = payload.get("sub")
     if not user_id:
         raise UserIsNotPresentException
-    user = await UsersService.find_one_or_none(id = int(user_id))
+    user = await UsersService.find_one_or_none(id=int(user_id))
     if not user:
         raise UserIsNotPresentException
     return user
 
 
-async def get_role(current_user = Depends(get_current_user)):
+async def get_role(current_user=Depends(get_current_user)):
     return current_user.role
 
-async def check_tutor_role(current_role = Depends(get_role)):
+
+async def check_tutor_role(current_role=Depends(get_role)):
     if current_role == "STUDENT":
         raise IncorrectRoleException
-    
 
-async def check_student_role(current_role = Depends(get_role)):
+
+async def check_student_role(current_role=Depends(get_role)):
     if current_role == "TUTOR":
         raise IncorrectRoleException
