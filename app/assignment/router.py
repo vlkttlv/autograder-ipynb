@@ -293,14 +293,24 @@ async def get_stats(
     assignment_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, gt=0, le=100),
+    sort: SortEnum = Query(
+        SortEnum.newest, description="Сортировка: newest / oldest"
+    ),
 ):
     """Получение статистики по заданию"""
+    order_by = "created_at"
+    desc_order = sort == SortEnum.newest
+
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
         raise AssignmentNotFoundException
     total = await SubmissionsService.count(assignment_id=assignment_id)
     stats = await SubmissionsService.get_statistics(
-        assignment_id=assignment_id, skip=skip, limit=limit
+        assignment_id=assignment_id,
+        skip=skip,
+        limit=limit,
+        order_by=order_by,
+        desc_order=desc_order
     )
     return {
         "submissions": stats["submissions"],
