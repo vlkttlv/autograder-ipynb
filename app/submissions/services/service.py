@@ -1,5 +1,5 @@
 from sqlalchemy.orm import selectinload, joinedload
-from sqlalchemy import desc, select, func
+from sqlalchemy import desc, select, func, asc
 from app.assignment.models import Assignments
 from app.service.base import BaseService
 from app.submissions.models import Submissions, SubmissionFiles
@@ -15,7 +15,8 @@ class SubmissionsService(BaseService):
         user_id: int,
         skip: int = 0,
         limit: int = 10,
-        order: str = "desc",
+        order_by: str | None = None,
+        desc_order: bool = True,
         search: str | None = None,
     ):
         async with async_session_maker() as session:
@@ -30,29 +31,38 @@ class SubmissionsService(BaseService):
                     Assignments.name.ilike(f"%{search}%")
                 )
 
-            if order == "desc":
-                query = query.order_by(desc(Submissions.created_at))
-            else:
-                query = query.order_by(Submissions.created_at)
+            if order_by:
+                column = getattr(cls.model, order_by)
+                stmt = stmt.order_by(
+                    desc(column) if desc_order else asc(column)
+                )
 
             query = query.offset(skip).limit(limit)
             result = await session.execute(query)
             return result.scalars().all()
-        
+
 
     @classmethod
-    async def get_statistics(cls, assignment_id: int, skip: int = 0, limit: int = 10):
+    async def get_statistics(cls,
+                            assignment_id: int,
+                            skip: int = 0,
+                            limit: int = 10,
+                            order_by: str | None = None,
+                            desc_order: bool = True,):
         async with async_session_maker() as session:
-
             # получаем список решений
             stmt = (
                 select(cls.model)
                 .options(selectinload(Submissions.user))
                 .where(cls.model.assignment_id == assignment_id)
-                .offset(skip)
-                .limit(limit)
             )
 
+            if order_by:
+                column = getattr(cls.model, order_by)
+                stmt = stmt.order_by(
+                    desc(column) if desc_order else asc(column)
+                )
+            stmt = stmt.offset(skip).limit(limit)
             res = await session.execute(stmt)
             submissions = res.scalars().all()
 
