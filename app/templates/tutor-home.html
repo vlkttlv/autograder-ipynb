@@ -26,6 +26,16 @@
 
     <!-- Форма поиска и сортировки -->
     <form method="get" class="sort-form">
+      <input type="hidden" name="sort" value="{{ sort }}">
+      <input type="hidden" name="search" value="{{ search }}">
+      <input type="hidden" name="page" value="{{ current_page }}">
+      <label for="disciplineSelect">Дисциплина:</label>
+      <select id="disciplineSelect" name="discipline_id" onchange="this.form.submit()">
+        <option value="">Все дисциплины</option>
+        {% for d in disciplines %}
+          <option value="{{ d.id }}" {% if discipline_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
       <label for="sortSelect">Сортировка:</label>
       <select id="sortSelect" name="sort" onchange="this.form.submit()">
         <option value="newest" {% if sort | trim == 'newest' %}selected{% endif %}>Сначала новые</option>
@@ -63,8 +73,8 @@
               <a href="/pages/assignments/{{ a.id }}?page={{ current_page }}&sort={{ sort | trim }}&search={{ search }}" 
                 class="assignment-link">{{ a.name }}</a>
             </td>
-            <td class="table-cell">{{ a.start_date }} {{ a.start_time }}</td>
-            <td class="table-cell">{{ a.due_date }} {{ a.due_time }}</td>
+            <td class="table-cell">{{ a.start_date }} {{ a.start_time.strftime("%H:%M") }}</td>
+            <td class="table-cell">{{ a.due_date }} {{ a.due_time.strftime("%H:%M") }}</td>
             <td class="table-cell">{{ a.grade }}</td>
             <td class="table-cell">
               <a href="/pages/assignments/{{ a.id }}/stats?page={{ current_page }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}" class="file-link">Посмотреть статистику</a>
@@ -80,21 +90,26 @@
     <!-- Пагинация -->
     <div class="pagination">
       {% if total_pages > 1 %}
+        {% set base_query = "&sort=" ~ sort|trim %}
+        {% if search %}{% set base_query = base_query ~ "&search=" ~ search %}{% endif %}
+        {% if discipline_id %}{% set base_query = base_query ~ "&discipline_id=" ~ discipline_id %}{% endif %}
+
         {% if current_page > 1 %}
-          <a href="?page=1&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}">&laquo;</a>
-          <a href="?page={{ current_page-1 }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}">&lt;</a>
+          <a href="?page=1{{ base_query }}">&laquo;</a>
+          <a href="?page={{ current_page-1 }}{{ base_query }}">&lt;</a>
         {% endif %}
 
         {% for p in range(1, total_pages+1) %}
-          <a href="?page={{ p }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}" class="{% if p == current_page %}active{% endif %}">{{ p }}</a>
+          <a href="?page={{ p }}{{ base_query }}" class="{% if p == current_page %}active{% endif %}">{{ p }}</a>
         {% endfor %}
 
         {% if current_page < total_pages %}
-          <a href="?page={{ current_page+1 }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}">&gt;</a>
-          <a href="?page={{ total_pages }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}">&raquo;</a>
+          <a href="?page={{ current_page+1 }}{{ base_query }}">&gt;</a>
+          <a href="?page={{ total_pages }}{{ base_query }}">&raquo;</a>
         {% endif %}
       {% endif %}
     </div>
+
   </main>
 
   <footer class="footer">

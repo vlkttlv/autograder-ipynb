@@ -13,8 +13,8 @@
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
       <a href="/pages/tutor-home" class="home-link">Домой</a>
-      <form action="/auth/logout" method="post">
-        <button class="logout-button">Выйти</button>
+      <form id="logout-form">
+        <button type="submit" class="logout-button">Выйти</button>
       </form>
     </div>
   </nav>
@@ -25,6 +25,23 @@
         <label for="name" class="block font-semibold text-lg">Название теста</label>
         <input type="text" id="name" name="name" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
+      <div>
+        <label for="discipline_id" class="block font-semibold text-lg">Дисциплина</label>
+        <select id="discipline_id" name="discipline_id" class="w-full p-2 border border-gray-300 rounded-md">
+          <option value="">— Выбрать существующую —</option>
+          {% for d in disciplines %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="new_discipline_name" class="block font-semibold text-lg">Или создать новую дисциплину</label>
+        <input type="text" id="new_discipline_name" name="new_discipline_name"
+              placeholder="Введите название дисциплины"
+              class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+
       <div>
         <label for="number_of_attempts" class="block font-semibold text-lg">Максимальное количество попыток</label>
         <input type="number" id="number_of_attempts" name="number_of_attempts" min="1" required class="w-full p-2 border border-gray-300 rounded-md">

@@ -4,24 +4,25 @@
   <meta charset="UTF-8">
   <title>Редактировать задание</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="/static/css/edit-assignment.css" rel="stylesheet">
-  <script src="/static/js/script.js"></script>
-  <script src="/static/js/edit-assignment.js" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/edit-assignment.css') }}">
+  <script src="{{ url_for('static', path='js/script.js') }}" defer></script>
+  <script src="{{ url_for('static', path='js/edit-assignment.js') }}" defer></script>
 </head>
 <body class="body-base">
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
       <a href="/pages/tutor-home" class="home-link">Домой</a>
-      <form action="/auth/logout" method="post">
-        <button class="logout-button">Выйти</button>
+      <form id="logout-form">
+        <button type="submit" class="logout-button">Выйти</button>
       </form>
     </div>
   </nav>
   <main class="main-container">
     <h1 class="main-title">Редактировать задание</h1>
     <form id="assignment-form" class="space-y-4" enctype="multipart/form-data">
-            <div>
+      <form id="assignment-form" data-assignment-id="{{ assignment.id }}">
+      <div>
         <label for="name" class="block font-semibold text-lg">Название задания</label>
         <input type="text" id="name" name="name" value="{{ assignment.name }}" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
@@ -35,11 +36,11 @@
       </div>
       <div>
         <label for="start_time" class="block font-semibold text-lg">Время открытия теста</label>
-        <input type="time" id="start_time" name="start_time" value="{{ assignment.start_time }}" required class="w-full p-2 border border-gray-300 rounded-md">
+        <input type="time" id="start_time" name="start_time" value="{{ assignment.start_time.strftime("%H:%M") }}" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
       <div>
         <label for="due_date" class="block font-semibold text-lg">Дата сдачи теста</label>
-        <input type="date" id="due_date" name="due_date" value="{{ assignment.due_date }}" required class="w-full p-2 border border-gray-300 rounded-md">
+        <input type="date" id="due_date" name="due_date" value="{{ assignment.due_date.strftime("%H:%M") }}" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
       <div>
         <label for="due_time" class="block font-semibold text-lg">Время сдачи теста</label>

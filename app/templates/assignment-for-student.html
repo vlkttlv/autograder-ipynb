@@ -13,8 +13,8 @@
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
       <a href="/pages/student-home" class="home-link">Домой</a>
-      <form action="/auth/logout" method="post">
-        <button class="logout-button">Выйти</button>
+      <form id="logout-form">
+        <button type="submit" class="logout-button">Выйти</button>
       </form>
     </div>
   </nav>
@@ -22,8 +22,8 @@
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
     <div class="assignment-details">
-      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time }}</p>
-      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time }}</p>
+      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
+      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
       <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
       {% if submission %}
       <p><strong>Затрачено попыток:</strong> {{ submission.number_of_attempts }}</p>
@@ -58,9 +58,14 @@
       <input type="file" id="submission-file" class="w-full p-2 border border-gray-300 rounded-md" accept=".ipynb">
 
       <div class="button-group">
-        <button type="button" id="submit-btn" class="submit-btn">
+        <button 
+          type="button" 
+          id="submit-btn" 
+          class="submit-btn"
+          data-assignment-id="{{ assignment.id }}">
           Отправить и оценить решение
         </button>
+
           <a href="/pages/student-home?page={{ page }}" class="back-button">
             Вернуться назад
           </a>

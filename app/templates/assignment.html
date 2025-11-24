@@ -6,23 +6,24 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/assignment.css') }}">
   <script src="{{ url_for('static', path='js/script.js') }}" defer></script>
-  <script src="{{ url_for('static', path='js/assignment-for-student.js') }}" defer></script>
+  <script src="{{ url_for('static', path='js/assignment.js') }}" defer></script>
 </head>
 <body class="body-base">
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
       <a href="/pages/tutor-home" class="home-link">Домой</a>
-      <form action="/auth/logout" method="post">
-        <button class="logout-button">Выйти</button>
+      <form id="logout-form">
+        <button type="submit" class="logout-button">Выйти</button>
       </form>
     </div>
   </nav>
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
     <div class="assignment-details">
-      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time }}</p>
-      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time }}</p>
+      <p><strong>Дисциплина:</strong> {{ discipline.name }}</p>
+      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
+      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
       <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
       <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
       <p><a href="/assignments/{{ assignment.id }}/file/original" class="file-link">Скачать оригинальное задание</a></p>
@@ -30,10 +31,11 @@
       <p><a href="/pages/assignments/{{ assignment.id }}/stats?page={{ page }}&sort={{ sort }}{% if search %}&search={{ search }}{% endif %}" class="file-link">Посмотреть статистику</a></p>
     </div>
     <div class="back-button-container">
-      <a href="/pages/tutor-home?page={{ page }}&sort={{ sort }}{% if search %}&search={{ search }}{% endif %}" 
+      <!-- <a href="/pages/tutor-home?page={{ page }}&sort={{ sort }}{% if search %}&search={{ search }}{% endif %}" 
         class="back-button">
         Вернуться к списку заданий
-      </a>
+      </a> -->
+      <button type="button" onclick="history.back()" class="back-button">Вернуться к списку заданий</button>
       <a href="/pages/assignments/{{ assignment.id }}/edit" class="edit-button">
         Редактировать задание
       </a>
