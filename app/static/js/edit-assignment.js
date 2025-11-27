@@ -1,7 +1,7 @@
 document.getElementById('save-changes-btn').addEventListener('click', async function() {
   const form = document.getElementById('assignment-form');
   const formData = new FormData(form);
-  const assignmentId = "{{ assignment.id }}";
+  const assignmentId = document.getElementById('assignment-form').dataset.assignmentId;
 
   function getValueOrExclude(value) {
     return value.trim() === '' ? undefined : value;
