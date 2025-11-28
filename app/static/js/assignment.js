@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/assignments/${assignmentId}`, { method: 'DELETE' });
+      const response = await fetch(`/assignments/${assignmentId}`, { method: 'DELETE', credentials: 'include' });
       if (response.ok) {
         window.location.href = '/pages/tutor-home';
       } else {

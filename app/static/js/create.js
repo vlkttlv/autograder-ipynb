@@ -45,7 +45,7 @@ document.getElementById('submit-btn').addEventListener('click', async function()
 
     } else {
       const result = await response.json();
-      const assignmentId = result.assignment;
+      const assignmentId = result.assignment_id;
       window.location.href = `/pages/assignments/${assignmentId}`;
     }
   } catch (error) {
