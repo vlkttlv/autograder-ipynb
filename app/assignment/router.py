@@ -1,18 +1,21 @@
 import io
 import csv
 import logging
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Optional
+from uuid import UUID
 import nbformat
 from openpyxl import Workbook
 from fastapi.responses import StreamingResponse
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Body,
     Depends,
     File,
     Form,
     HTTPException,
+    Path,
     Query,
     Response,
     UploadFile,
@@ -31,6 +34,7 @@ from app.assignment.services.dao_service import (
 )
 from app.submissions.services.service import SubmissionFilesService, SubmissionsService
 from app.assignment.schemas import (
+    AssignmentQueryParams,
     SortEnum,
     ExportMethod,
     StatsResponse,
@@ -49,7 +53,8 @@ from app.exceptions import (
 from app.dropbox.service import dropbox_service
 from app.logger import configure_logging
 
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger("assignments_service")
 configure_logging()
 
 router = APIRouter(prefix="/assignments", tags=["Assignments"])
@@ -64,7 +69,7 @@ async def add_assignment(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
     number_of_attempts: int = Form(..., ge=1),
-    discipline_id: str | None = Form(default=None),
+    discipline_id: int | None = Form(default=None),
     new_discipline_name: str | None = Form(default=None),
     start_date: date = Form(default=date.today()),
     start_time: time = Form(default=time),
@@ -73,7 +78,7 @@ async def add_assignment(
     assignment_file: UploadFile = File(...),
     current_user: Users = Depends(get_current_user),
 ):
-    """Создание задания (dropbox-загрузка выполняется в фоне)"""
+    """Создание задания"""
     if (due_date < start_date) or (
         due_date == start_date and start_time > due_time
     ):
@@ -81,22 +86,27 @@ async def add_assignment(
     # TODO
     # поправить исключения
     if discipline_id:
-        if await DisciplinesService.find_one_or_none(id=int(discipline_id)):
-            final_discipline_id=int(discipline_id)
+        if await DisciplinesService.find_one_or_none(id=discipline_id):
+            final_discipline_id=discipline_id
         else:
             raise DisciplineNotFoundException
     elif new_discipline_name:
-        new_discipline_id = await DisciplinesService.add(
-            name=new_discipline_name,
-            teacher_id=current_user.id
-        )
-        final_discipline_id = new_discipline_id
+        discipline = await DisciplinesService.find_one_or_none(name=new_discipline_name)
+        if discipline:
+            final_discipline_id = discipline.id
+        else:
+            new_discipline_id = await DisciplinesService.add(
+                name=new_discipline_name,
+                teacher_id=current_user.id
+            )
+            final_discipline_id = new_discipline_id
     else:
         raise HTTPException(status_code=400, detail="Не выбрана и не создана дисциплина")
 
 
     content = await assignment_file.read()
-
+    logger.info(f"Преподаватель {current_user.email} отправил задание")
+    
     assignment_id, original_assignment, modified_assignment = (
         await AssignmentManagerService.process_and_upload_assignment(
             content=content,
@@ -111,14 +121,12 @@ async def add_assignment(
         )
     )
 
-    # Запускаем загрузку файлов на dropbox в фоне
     background_tasks.add_task(
         AssignmentManagerService.upload_to_dropbox_and_finalize,
         assignment_id,
         original_assignment,
         modified_assignment,
     )
-
     return {"status": "accepted", "assignment_id": assignment_id}
 
 
@@ -129,25 +137,22 @@ async def add_assignment(
 )
 async def get_assignments(
     current_user: Users = Depends(get_current_user),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, gt=0, le=100),
-    sort: SortEnum = Query(
-        SortEnum.newest, description="Сортировка: newest / oldest"
-    ),
+    params: AssignmentQueryParams = Depends(),
     search: Optional[str] = Query(
         None, description="Поиск по названию задания"
     ),
     discipline_id: int | None = Query(None),
 ):
     """Получение списка заданий с пагинацией, сортировкой и поиском"""
+    offset = (params.page - 1) * params.limit
     order_by = "created_at"
-    desc_order = sort == SortEnum.newest
+    desc_order = params.sort == SortEnum.newest
 
     if discipline_id is not None:
         items = await AssignmentService.find_all(
             user_id=current_user.id,
-            skip=skip,
-            limit=limit,
+            skip=offset,
+            limit=params.limit,
             order_by=order_by,
             desc_order=desc_order,
             search=search,
@@ -159,8 +164,8 @@ async def get_assignments(
     else:
         items = await AssignmentService.find_all(
             user_id=current_user.id,
-            skip=skip,
-            limit=limit,
+            skip=offset,
+            limit=params.limit,
             order_by=order_by,
             desc_order=desc_order,
             search=search,
@@ -224,19 +229,37 @@ async def get_file_of_modified_assignment(assignment_id: str):
             "Content-Disposition": f"attachment; filename={assignment_id}_mod.ipynb"
         },
     )
-
+# TODO
+# эту фигню убрать куда нибудь
+def remove_tz(t: time) -> time:
+    return t.replace(tzinfo=None) if t.tzinfo else t
 
 @router.patch(
     "/{assignment_id}",
     dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
 )
 async def update_assignment(
-    assignment_id: str, updated_data: AssignmentUpdateSchema
+    assignment_id: str, updated_data: AssignmentUpdateSchema = Body(...)
 ):
     """Обновление задания"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
         raise AssignmentNotFoundException
+
+    # Используем актуальные значения: новые, если переданы, иначе старые
+    start_date = updated_data.start_date or assignment.start_date
+    due_date = updated_data.due_date or assignment.due_date
+
+    start_time = remove_tz(updated_data.start_time or assignment.start_time)
+    due_time = remove_tz(updated_data.due_time or assignment.due_time)
+
+    # Преобразуем в datetime для удобного сравнения
+    start_dt = datetime.combine(start_date, start_time)
+    due_dt = datetime.combine(due_date, due_time)
+
+    if due_dt <= start_dt:
+        raise WgongDateException
+
     await AssignmentService.update_assignment(assignment_id, updated_data)
 
 
@@ -291,15 +314,12 @@ async def delete_assignment(
 )
 async def get_stats(
     assignment_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, gt=0, le=100),
-    sort: SortEnum = Query(
-        SortEnum.newest, description="Сортировка: newest / oldest"
-    ),
+    params: AssignmentQueryParams = Depends(),
 ):
     """Получение статистики по заданию"""
+    offset = (params.page - 1) * params.limit
     order_by = "created_at"
-    desc_order = sort == SortEnum.newest
+    desc_order = params.sort == SortEnum.newest
 
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
     if not assignment:
@@ -307,8 +327,8 @@ async def get_stats(
     total = await SubmissionsService.count(assignment_id=assignment_id)
     stats = await SubmissionsService.get_statistics(
         assignment_id=assignment_id,
-        skip=skip,
-        limit=limit,
+        skip=offset,
+        limit=params.limit,
         order_by=order_by,
         desc_order=desc_order
     )
