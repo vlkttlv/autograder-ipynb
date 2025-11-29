@@ -7,7 +7,6 @@ from sqlalchemy import (
     Integer,
     String,
     Time,
-    LargeBinary,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -36,7 +35,7 @@ class Assignments(Base):
     discipline = relationship("Disciplines")
     submission = relationship("Submissions", back_populates="assignment")
     assignment_files = relationship(
-        "AssignmentFile", back_populates="assignment"
+        "AssignmentFile", back_populates="assignment", cascade="all, delete-orphan"
     )
 
 
