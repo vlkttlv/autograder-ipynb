@@ -1,3 +1,5 @@
+import asyncio
+import celery
 import nbformat
 import logging
 from datetime import date, time
@@ -14,7 +16,7 @@ from app.assignment.schemas import TypeOfAssignmentFile
 from app.exceptions import IncorrectFormatAssignmentException
 from app.logger import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("assignment_manager_service")
 configure_logging()
 
 
@@ -59,25 +61,27 @@ class AssignmentManagerService:
                     grade=grade,
                     user_id=user_id,
                 )
-
-        logger.info("Задание %d создано, загрузка файлов запущена в фоне", assignment)
+        logger.info(f"Задание {str(assignment)} создано, загрузка файлов запущена в фоне")
         return str(assignment), original_assignment, modified_assignment
-    
+
 
     @staticmethod
     async def upload_to_dropbox_and_finalize(assignment_id, original, modified):
         """Фоновая загрузка файлов на Google dropbox и сохранение их ID в БД"""
+        logger.info(f"Файлы задания {assignment_id} начали загружаться в dropbox")
         try:
             original_file = dropbox_service.upload_file(
                 file_content=original,
                 filename=f"{assignment_id}_original.ipynb",
                 folder_type="assignments",
             )
+            logger.info(f"Оригинальный файл задания {assignment_id} загружен")
             modified_file = dropbox_service.upload_file(
                 file_content=modified,
                 filename=f"{assignment_id}_modified.ipynb",
                 folder_type="assignments",
             )
+            logger.info(f"Отредактированный файл задания {assignment_id} загружен")
 
             async with async_session_maker() as session:
                 async with session.begin():
@@ -85,8 +89,8 @@ class AssignmentManagerService:
                         session=session,
                         assignment_id=assignment_id,
                         file_type=TypeOfAssignmentFile.ORIGINAL,
-                        file_id=modified_file["path"],
-                        file_link=modified_file["link"],
+                        file_id=original_file["path"],
+                        file_link=original_file["link"],
                     )
                     await AssignmentFileService.add(
                         session=session,
@@ -130,6 +134,13 @@ class AssignmentManagerService:
                     session=session,
                 )
 
+                # сохраняем старые файлы
+                old_files_to_delete = []
+                if original_record and original_record.file_id:
+                    old_files_to_delete.append(original_record.file_id)
+                if modified_record and modified_record.file_id:
+                    old_files_to_delete.append(modified_record.file_id)
+
                 # загружаем новые файлы на dropbox
                 try:
                     original_file = dropbox_service.upload_file(
@@ -144,25 +155,27 @@ class AssignmentManagerService:
                     )
                 except Exception as e:
                     logger.error(
-                        "Ошибка загрузки новых файлов на Google dropbox: %s", e
+                        "Ошибка загрузки новых файлов на dropbox: %s", e
                     )
                     raise HTTPException(
                         status_code=500,
-                        detail="Не удалось загрузить новые файлы на Google dropbox",
+                        detail="Не удалось загрузить файлы на dropbox",
                     ) from e
 
                 # обновляем записи в БД
-                await AssignmentFileService.update_file(
+                await AssignmentFileService.update_or_create(
                     session=session,
                     assignment_id=assignment_id,
                     file_type=TypeOfAssignmentFile.ORIGINAL,
-                    file_id=original_file["id"],
+                    file_id=original_file["path"],
+                    file_link=original_file["link"],
                 )
-                await AssignmentFileService.update_file(
+                await AssignmentFileService.update_or_create(
                     session=session,
                     assignment_id=assignment_id,
                     file_type=TypeOfAssignmentFile.MODIFIED,
-                    file_id=modified_file["id"],
+                    file_id=modified_file["path"],
+                    file_link=modified_file["link"],
                 )
 
                 # обновляем оценку
@@ -170,21 +183,6 @@ class AssignmentManagerService:
                 await AssignmentService.update(
                     model_id=assignment_id, grade=grade, session=session
                 )
-
-                # только после успешного коммита удаляем старые файлы
-                old_files_to_delete = []
-                if original_record and original_record.file_id:
-                    old_files_to_delete.append(original_record.file_id)
-                if modified_record and modified_record.file_id:
-                    old_files_to_delete.append(modified_record.file_id)
-
-        # удаляем старые файлы после успешного коммита транзакции
-        for file_id in old_files_to_delete:
-            try:
-                dropbox_service.delete_file(file_id)
-                logger.info(f"Старый файл {file_id} удален с Google dropbox")
-            except Exception as e:
-                logger.error(f"Ошибка удаления старого файла {file_id}: {e}")
 
         logger.info("Задание %s успешно обновлено", assignment_id)
         return assignment_id
