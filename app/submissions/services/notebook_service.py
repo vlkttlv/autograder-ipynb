@@ -30,7 +30,6 @@ class NotebookService:
             or assignment.start_date > now_datetime.date()
         ):
             raise DeadlineException
-        
 
     @staticmethod
     async def check_date_and_attempts_submission(assignment_id, current_user):
@@ -52,11 +51,13 @@ class NotebookService:
         if not submission_service:
             raise SolutionNotFoundException
 
-        if submission_service.number_of_attempts == assignment.number_of_attempts:
+        if (
+            submission_service.number_of_attempts
+            == assignment.number_of_attempts
+        ):
             raise EndedAttemptsException
 
         return submission_service
-    
 
     @staticmethod
     def grade_notebook(client, submission, tutor_notebook):
@@ -65,15 +66,24 @@ class NotebookService:
         # Выполняем каждую ячейку отдельно
         with client.setup_kernel() as kernel:
             for index, cell in enumerate(submission.cells):
-                if cell.cell_type == "code":  # Проверяем, что это кодовая ячейка
+                if (
+                    cell.cell_type == "code"
+                ):  # Проверяем, что это кодовая ячейка
                     try:
-                        client.execute_cell(cell, cell_index=index, store_history=True)
+                        client.execute_cell(
+                            cell, cell_index=index, store_history=True
+                        )
                     except CellExecutionError:
                         pass
                     if cell.cell_type == "code":
-                        if "# Tests " in cell.source and " points." in cell.source:
+                        if (
+                            "# Tests " in cell.source
+                            and " points." in cell.source
+                        ):
                             points = 0
-                            match = re.search(r"# Tests (\d+) points", cell.source)
+                            match = re.search(
+                                r"# Tests (\d+) points", cell.source
+                            )
                             if match:
                                 points = int(match.group(1))
 

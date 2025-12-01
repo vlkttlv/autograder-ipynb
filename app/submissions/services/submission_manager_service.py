@@ -5,8 +5,16 @@ from nbformat import read, NO_CONVERT
 from nbclient.exceptions import CellExecutionError
 from app.assignment.schemas import TypeOfAssignmentFile
 from app.assignment.services.dao_service import AssignmentFileService
-from app.exceptions import DecodingIPYNBException, IncorrectFormatAssignmentException, SolutionNotFoundException, SyntaxException
-from app.submissions.services.service import SubmissionFilesService, SubmissionsService
+from app.exceptions import (
+    DecodingIPYNBException,
+    IncorrectFormatAssignmentException,
+    SolutionNotFoundException,
+    SyntaxException,
+)
+from app.submissions.services.service import (
+    SubmissionFilesService,
+    SubmissionsService,
+)
 from app.submissions.services.notebook_service import NotebookService
 from app.dropbox.service import dropbox_service
 
@@ -60,7 +68,7 @@ class SubmissionManagerService:
         # Преобразуем notebook в bytes
         submission_notebook = nbformat.writes(notebook).encode("utf-8")
 
-        # Загружаем файл на Google dropbox
+        # Загружаем файл на dropbox
         upload_info = dropbox_service.upload_file(
             submission_notebook,
             filename=f"{user_id}_{assignment_id}.ipynb",
@@ -73,19 +81,13 @@ class SubmissionManagerService:
         )
 
         if sub_file:
-            # Удаляем старый файл с dropbox
-            try:
-                dropbox_service.delete_file(sub_file.file_id)
-            except Exception as e:
-                logger.warning(f"Не удалось удалить старый файл: {e}")
-            # Обновляем file_id
+            # обновляем ссылку и file_id
             await SubmissionFilesService.update(
                 model_id=sub_file.id,
                 file_id=upload_info["path"],
                 file_link=upload_info["link"],
             )
         else:
-            # Добавляем новую запись
             await SubmissionFilesService.add(
                 submission_id=submission_id,
                 assignment_id=assignment_id,
@@ -104,9 +106,7 @@ class SubmissionManagerService:
 
     @staticmethod
     async def evaluate_submission(
-        assignment_id: str,
-        user_email: str,
-        submission_service
+        assignment_id: str, user_email: str, submission_service
     ):
         """Проверка решения"""
         # Получаем запись о файле решения (file_id хранится в SubmissionFiles)
@@ -119,7 +119,9 @@ class SubmissionManagerService:
         # Загружаем ipynb студента с dropbox
         file_content = dropbox_service.download_file(submission_file.file_id)
         try:
-            notebook = nbformat.reads(file_content.decode("utf-8"), as_version=4)
+            notebook = nbformat.reads(
+                file_content.decode("utf-8"), as_version=4
+            )
         except Exception as e:
             raise DecodingIPYNBException from e
 
@@ -127,15 +129,21 @@ class SubmissionManagerService:
         assignment_file = await AssignmentFileService.find_one_or_none(
             assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
         )
-        assignment_content = dropbox_service.download_file(assignment_file.file_id)
+        assignment_content = dropbox_service.download_file(
+            assignment_file.file_id
+        )
         try:
-            tutor_notebook = nbformat.reads(assignment_content.decode("utf-8"), as_version=4)
+            tutor_notebook = nbformat.reads(
+                assignment_content.decode("utf-8"), as_version=4
+            )
         except Exception as e:
             raise DecodingIPYNBException from e
 
         # Проверяем
         client = NotebookClient(notebook)
-        total_points, feedback = NotebookService.grade_notebook(client, notebook, tutor_notebook)
+        total_points, feedback = NotebookService.grade_notebook(
+            client, notebook, tutor_notebook
+        )
 
         # Обновляем результат
         await SubmissionsService.update(
@@ -146,7 +154,9 @@ class SubmissionManagerService:
         )
 
         logger.info(
-            "Пользователь %s проверил решение задания %s", user_email, assignment_id
+            "Пользователь %s проверил решение задания %s",
+            user_email,
+            assignment_id,
         )
 
         return (total_points, feedback)
