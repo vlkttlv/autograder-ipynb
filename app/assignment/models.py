@@ -28,14 +28,18 @@ class Assignments(Base):
     grade: Mapped[int]
     created_at: Mapped[datetime] = mapped_column(DateTime)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    discipline_id: Mapped[int] = mapped_column(ForeignKey("disciplines.id"), nullable=False)
+    discipline_id: Mapped[int] = mapped_column(
+        ForeignKey("disciplines.id"), nullable=False
+    )
 
     # Связи с другими таблицами
     user = relationship("Users", back_populates="assignments")
     discipline = relationship("Disciplines")
     submission = relationship("Submissions", back_populates="assignment")
     assignment_files = relationship(
-        "AssignmentFile", back_populates="assignment", cascade="all, delete-orphan"
+        "AssignmentFile",
+        back_populates="assignment",
+        cascade="all, delete-orphan",
     )
 
 
@@ -48,6 +52,8 @@ class AssignmentFile(Base):
     assignment_id: Mapped[UUID] = mapped_column(ForeignKey("assignments.id"))
     file_type: Mapped[str] = mapped_column(String)  # original / modified
     file_id: Mapped[str] = mapped_column(String)  # путь в Dropbox
-    file_link: Mapped[str] = mapped_column(String, nullable=False)  # публичная ссылка
+    file_link: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # публичная ссылка
 
     assignment = relationship("Assignments", back_populates="assignment_files")

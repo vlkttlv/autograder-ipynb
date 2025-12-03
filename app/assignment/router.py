@@ -32,7 +32,10 @@ from app.assignment.services.dao_service import (
     AssignmentService,
     DisciplinesService,
 )
-from app.submissions.services.service import SubmissionFilesService, SubmissionsService
+from app.submissions.services.service import (
+    SubmissionFilesService,
+    SubmissionsService,
+)
 from app.assignment.schemas import (
     AssignmentQueryParams,
     SortEnum,
@@ -87,38 +90,42 @@ async def add_assignment(
     # поправить исключения
     if discipline_id:
         if await DisciplinesService.find_one_or_none(id=discipline_id):
-            final_discipline_id=discipline_id
+            final_discipline_id = discipline_id
         else:
             raise DisciplineNotFoundException
     elif new_discipline_name:
-        discipline = await DisciplinesService.find_one_or_none(name=new_discipline_name)
+        discipline = await DisciplinesService.find_one_or_none(
+            name=new_discipline_name
+        )
         if discipline:
             final_discipline_id = discipline.id
         else:
             new_discipline_id = await DisciplinesService.add(
-                name=new_discipline_name,
-                teacher_id=current_user.id
+                name=new_discipline_name, teacher_id=current_user.id
             )
             final_discipline_id = new_discipline_id
     else:
-        raise HTTPException(status_code=400, detail="Не выбрана и не создана дисциплина")
-
+        raise HTTPException(
+            status_code=400, detail="Не выбрана и не создана дисциплина"
+        )
 
     content = await assignment_file.read()
     logger.info(f"Преподаватель {current_user.email} отправил задание")
-    
-    assignment_id, original_assignment, modified_assignment = (
-        await AssignmentManagerService.process_and_upload_assignment(
-            content=content,
-            discipline_id=final_discipline_id,
-            name=name,
-            number_of_attempts=number_of_attempts,
-            start_date=start_date,
-            start_time=start_time,
-            due_date=due_date,
-            due_time=due_time,
-            user_id=current_user.id,
-        )
+
+    (
+        assignment_id,
+        original_assignment,
+        modified_assignment,
+    ) = await AssignmentManagerService.process_and_upload_assignment(
+        content=content,
+        discipline_id=final_discipline_id,
+        name=name,
+        number_of_attempts=number_of_attempts,
+        start_date=start_date,
+        start_time=start_time,
+        due_date=due_date,
+        due_time=due_time,
+        user_id=current_user.id,
     )
 
     background_tasks.add_task(
@@ -229,17 +236,21 @@ async def get_file_of_modified_assignment(assignment_id: str):
             "Content-Disposition": f"attachment; filename={assignment_id}_mod.ipynb"
         },
     )
+
+
 # TODO
 # эту фигню убрать куда нибудь
 def remove_tz(t: time) -> time:
     return t.replace(tzinfo=None) if t.tzinfo else t
+
 
 @router.patch(
     "/{assignment_id}",
     dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
 )
 async def update_assignment(
-    assignment_id: str, updated_data: AssignmentUpdateSchema = Body(...)
+    assignment_id: str, updated_data: AssignmentUpdateSchema = Body(...),
+    current_user: Users = Depends(get_current_user)
 ):
     """Обновление задания"""
     assignment = await AssignmentService.find_one_or_none(id=assignment_id)
@@ -259,6 +270,22 @@ async def update_assignment(
 
     if due_dt <= start_dt:
         raise WgongDateException
+    
+    if updated_data.discipline_id is not None:
+        final_discipline_id = updated_data.discipline_id
+        updated_data.discipline_id = final_discipline_id
+
+    elif updated_data.new_discipline_name:
+        discipline = await DisciplinesService.find_one_or_none(
+            name=updated_data.new_discipline_name
+        )
+        if discipline:
+            final_discipline_id = discipline.id
+        else:
+            new_discipline_id = await DisciplinesService.add(
+                name=updated_data.new_discipline_name, teacher_id=current_user.id
+            )
+            final_discipline_id = new_discipline_id
 
     await AssignmentService.update_assignment(assignment_id, updated_data)
 
@@ -297,14 +324,15 @@ async def delete_assignment(
             try:
                 dropbox_service.delete_file(f.file_id)
             except Exception as e:
-                logger.info(f"Не удалось удалить файл с Dropbox: {f.file_id}, ошибка: {e}")
+                logger.info(
+                    f"Не удалось удалить файл с Dropbox: {f.file_id}, ошибка: {e}"
+                )
 
     # Удаляем связанные сущности в БД
     await SubmissionFilesService.delete(assignment_id=assignment_id)
     await SubmissionsService.delete(assignment_id=assignment_id)
     await AssignmentFileService.delete(assignment_id=assignment_id)
     await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
-
 
 
 @router.get(
@@ -330,7 +358,7 @@ async def get_stats(
         skip=offset,
         limit=params.limit,
         order_by=order_by,
-        desc_order=desc_order
+        desc_order=desc_order,
     )
     return {
         "submissions": stats["submissions"],
@@ -411,6 +439,10 @@ async def process(assignment_file: UploadFile = File(...)):
         notebook = nbformat.reads(content.decode("utf-8"), as_version=4)
     except Exception as e:
         raise DecodingIPYNBException from e
-    NotebookService.check_notebook(notebook)  # проверка, есть ли нужные блоки в файле
-    modified_notebook = NotebookService.modify_notebook(notebook)  # редактируем файл
+    NotebookService.check_notebook(
+        notebook
+    )  # проверка, есть ли нужные блоки в файле
+    modified_notebook = NotebookService.modify_notebook(
+        notebook
+    )  # редактируем файл
     return modified_notebook

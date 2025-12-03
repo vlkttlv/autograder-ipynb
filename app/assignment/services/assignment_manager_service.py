@@ -48,7 +48,6 @@ class AssignmentManagerService:
 
         async with async_session_maker() as session:
             async with session.begin():
-
                 assignment = await AssignmentService.add(
                     session=session,
                     discipline_id=discipline_id,
@@ -61,14 +60,17 @@ class AssignmentManagerService:
                     grade=grade,
                     user_id=user_id,
                 )
-        logger.info(f"Задание {str(assignment)} создано, загрузка файлов запущена в фоне")
+        logger.info(
+            f"Задание {str(assignment)} создано, загрузка файлов запущена в фоне"
+        )
         return str(assignment), original_assignment, modified_assignment
-
 
     @staticmethod
     async def upload_to_dropbox_and_finalize(assignment_id, original, modified):
         """Фоновая загрузка файлов на Google dropbox и сохранение их ID в БД"""
-        logger.info(f"Файлы задания {assignment_id} начали загружаться в dropbox")
+        logger.info(
+            f"Файлы задания {assignment_id} начали загружаться в dropbox"
+        )
         try:
             original_file = dropbox_service.upload_file(
                 file_content=original,
@@ -81,7 +83,9 @@ class AssignmentManagerService:
                 filename=f"{assignment_id}_modified.ipynb",
                 folder_type="assignments",
             )
-            logger.info(f"Отредактированный файл задания {assignment_id} загружен")
+            logger.info(
+                f"Отредактированный файл задания {assignment_id} загружен"
+            )
 
             async with async_session_maker() as session:
                 async with session.begin():
@@ -100,10 +104,13 @@ class AssignmentManagerService:
                         file_link=modified_file["link"],
                     )
 
-            logger.info("Файлы задания %s успешно загружены на DropBox", assignment_id)
+            logger.info(
+                "Файлы задания %s успешно загружены на DropBox", assignment_id
+            )
         except Exception as e:
-            logger.error(f"Фоновая ошибка загрузки файлов для задания {assignment_id}: {e}")
-
+            logger.error(
+                f"Фоновая ошибка загрузки файлов для задания {assignment_id}: {e}"
+            )
 
     @staticmethod
     async def update_file(assignment_id, assignment_file):

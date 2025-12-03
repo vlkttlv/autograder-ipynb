@@ -30,7 +30,7 @@ class AssignmentUpdateSchema(BaseModel):
     due_time: Optional[time] = None
     number_of_attempts: Optional[int] = Field(None, ge=1)
     discipline_id: Optional[int] = None
-
+    new_discipline_name: Optional[str] = None
 
 
 class TypeOfAssignmentFile(str, Enum):
@@ -52,12 +52,14 @@ class SortEnum(str, Enum):
     newest = "newest"
     oldest = "oldest"
 
+
 class UserStatsResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
     email: str
     group_id: int
+
 
 class SubmissionStatsResponse(BaseModel):
     id: UUID
@@ -68,21 +70,25 @@ class SubmissionStatsResponse(BaseModel):
     feedback: list
     user: UserStatsResponse
 
+
 class StatsResponse(BaseModel):
     submissions: list[SubmissionStatsResponse]
     average_score: float
     total: int
 
+
 class AssignmentQueryParams:
     def __init__(
         self,
         page: int = Query(1, ge=1, description="Номер страницы"),
-        limit: int = Query(10, gt=0, le=100, description="Количество записей на странице"),
+        limit: int = Query(
+            10, gt=0, le=100, description="Количество записей на странице"
+        ),
         sort: SortEnum = Query(
-            SortEnum.newest, description="Сортировка: newest - сначала новые / oldest - сначала старые"
-            ),
+            SortEnum.newest,
+            description="Сортировка: newest - сначала новые / oldest - сначала старые",
+        ),
     ):
         self.page = page
         self.limit = limit
         self.sort = sort
-        
