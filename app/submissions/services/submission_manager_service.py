@@ -4,7 +4,7 @@ from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 from nbclient.exceptions import CellExecutionError
 from app.assignment.schemas import TypeOfAssignmentFile
-from app.assignment.services.dao_service import AssignmentFileService
+from app.assignment.services.dao_service import AssignmentFileDAO
 from app.exceptions import (
     DecodingIPYNBException,
     IncorrectFormatAssignmentException,
@@ -12,8 +12,8 @@ from app.exceptions import (
     SyntaxException,
 )
 from app.submissions.services.service import (
-    SubmissionFilesService,
-    SubmissionsService,
+    SubmissionFilesDAO,
+    SubmissionsDAO,
 )
 from app.submissions.services.notebook_service import NotebookService
 from app.dropbox.service import dropbox_service
@@ -27,13 +27,13 @@ configure_logging()
 class SubmissionManagerService:
     @staticmethod
     async def process_and_upload_submission(
-        assignment_id: str, submission_file, user_id: int, user_email: str
+        session, assignment_id: str, submission_file, user_id: int, user_email: str
     ):
         """
         Обрабатывает блокнот, модифицирует его, загружает на Google dropbox
         и сохраняет задание в БД.
         """
-        await NotebookService.check_date_submission(assignment_id)
+        await NotebookService.check_date_submission(session, assignment_id)
 
         filename = submission_file.filename
         if not filename.lower().endswith(".ipynb"):
@@ -51,12 +51,13 @@ class SubmissionManagerService:
             raise SyntaxException from e
 
         # Проверяем наличие submission
-        submission = await SubmissionsService.find_one_or_none(
-            user_id=user_id, assignment_id=assignment_id
+        submission = await SubmissionsDAO.find_one_or_none(
+            session=session, user_id=user_id, assignment_id=assignment_id
         )
         # если это первое решение, то добавляем его в БД
         if submission is None:
-            submission_id = await SubmissionsService.add(
+            submission_id = await SubmissionsDAO.add(
+                session=session,
                 user_id=user_id,
                 assignment_id=assignment_id,
                 score=0,
@@ -76,19 +77,21 @@ class SubmissionManagerService:
         )
 
         # Проверяем наличие записи о файле в БД
-        sub_file = await SubmissionFilesService.find_one_or_none(
-            submission_id=submission_id
+        sub_file = await SubmissionFilesDAO.find_one_or_none(
+            session=session, submission_id=submission_id
         )
 
         if sub_file:
             # обновляем ссылку и file_id
-            await SubmissionFilesService.update(
+            await SubmissionFilesDAO.update(
+                session=session,
                 model_id=sub_file.id,
                 file_id=upload_info["path"],
                 file_link=upload_info["link"],
             )
         else:
-            await SubmissionFilesService.add(
+            await SubmissionFilesDAO.add(
+                session=session,
                 submission_id=submission_id,
                 assignment_id=assignment_id,
                 file_id=upload_info["path"],
@@ -106,12 +109,12 @@ class SubmissionManagerService:
 
     @staticmethod
     async def evaluate_submission(
-        assignment_id: str, user_email: str, submission_service
+        session, assignment_id: str, user_email: str, submission_service
     ):
         """Проверка решения"""
         # Получаем запись о файле решения (file_id хранится в SubmissionFiles)
-        submission_file = await SubmissionFilesService.find_one_or_none(
-            submission_id=submission_service.id
+        submission_file = await SubmissionFilesDAO.find_one_or_none(
+            session=session, submission_id=submission_service.id
         )
         if not submission_file or not submission_service:
             raise SolutionNotFoundException
@@ -126,8 +129,8 @@ class SubmissionManagerService:
             raise DecodingIPYNBException from e
 
         # Загружаем ipynb преподавателя с dropbox
-        assignment_file = await AssignmentFileService.find_one_or_none(
-            assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
+        assignment_file = await AssignmentFileDAO.find_one_or_none(
+            session=session, assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
         )
         assignment_content = dropbox_service.download_file(
             assignment_file.file_id
@@ -146,7 +149,8 @@ class SubmissionManagerService:
         )
 
         # Обновляем результат
-        await SubmissionsService.update(
+        await SubmissionsDAO.update(
+            session=session,
             model_id=submission_service.id,
             score=total_points,
             number_of_attempts=submission_service.number_of_attempts + 1,

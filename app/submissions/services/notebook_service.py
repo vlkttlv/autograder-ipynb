@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
-from app.assignment.services.dao_service import AssignmentService
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.assignment.services.dao_service import AssignmentDAO
 from app.exceptions import (
     AssignmentNotFoundException,
     DeadlineException,
@@ -10,7 +11,7 @@ from app.exceptions import (
 import re
 from nbclient.exceptions import CellExecutionError
 from app.logger import configure_logging
-from app.submissions.services.service import SubmissionsService
+from app.submissions.services.service import SubmissionsDAO
 
 logger = logging.getLogger(__name__)
 configure_logging()
@@ -18,9 +19,9 @@ configure_logging()
 
 class NotebookService:
     @staticmethod
-    async def check_date_submission(assignment_id):
+    async def check_date_submission(session: AsyncSession, assignment_id):
         now_datetime = datetime.now()
-        assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+        assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
 
         if not assignment:
             raise AssignmentNotFoundException
@@ -32,9 +33,9 @@ class NotebookService:
             raise DeadlineException
 
     @staticmethod
-    async def check_date_and_attempts_submission(assignment_id, current_user):
+    async def check_date_and_attempts_submission(session, assignment_id, current_user):
         now_datetime = datetime.now()
-        assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+        assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
 
         if not assignment:
             raise AssignmentNotFoundException
@@ -45,8 +46,8 @@ class NotebookService:
         ):
             raise DeadlineException
 
-        submission_service = await SubmissionsService.find_one_or_none(
-            user_id=current_user.id, assignment_id=assignment_id
+        submission_service = await SubmissionsDAO.find_one_or_none(
+            session=session, user_id=current_user.id, assignment_id=assignment_id
         )
         if not submission_service:
             raise SolutionNotFoundException
