@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 import jwt
 from pydantic import EmailStr
 from passlib.context import CryptContext
+from app.db import get_db_session
 from app.exceptions import IncorrectEmailOrPasswordException
 from app.config import settings
 from app.user.service import TokenService, UsersService
@@ -9,6 +12,7 @@ from app.user.service import TokenService, UsersService
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+
 
 def get_password_hash(password: str) -> str:
     """Генерирует хэшированный пароль"""
@@ -34,7 +38,7 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, settings.ALGORITHM)
 
 
-async def create_refresh_token(data: dict) -> str:
+async def create_refresh_token(data: dict, session: AsyncSession) -> str:
     """Создает refresh токен"""
     to_encode = data.copy()
     now_time = datetime.utcnow()
@@ -44,25 +48,29 @@ async def create_refresh_token(data: dict) -> str:
     user_id = int(data["sub"])
 
     # Проверяем, есть ли уже такой refresh токен в БД
-    token_user = await TokenService.find_one_or_none(user_id=user_id)
+    token_user = await TokenService.find_one_or_none(session=session, user_id=user_id)
     if not token_user:
-        await TokenService.add(token=token, user_id=user_id, created_at=now_time, expires_at=expire)
+        await TokenService.add(
+            session=session, token=token, user_id=user_id, created_at=now_time, expires_at=expire
+        )
     else:
-        await TokenService.update_token(created_at=now_time, expires_at=expire, user_id=user_id, token=token)
+        await TokenService.update_token(
+            created_at=now_time, expires_at=expire, user_id=user_id, token=token
+        )
     return token
 
 
-async def authenticate_user(email: EmailStr, password: str):
+async def authenticate_user(email: EmailStr, password: str, session: AsyncSession):
     """
     Аутенфицирует пользователя
-    
+
     Проверяет, есть ли пользователь с такой почтой в БД и совпадает ли введенный пароль
-    
+
     -Возвращает:
         Optional[users]: Экземпляр модели пользователя, если запись найдена.
         Если запись не найдена, возвращается None.
     """
-    user = await UsersService.find_one_or_none(email=email)
+    user = await UsersService.find_one_or_none(session=session, email=email)
     if not (user and verify_password(password, user.hashed_password)):
         raise IncorrectEmailOrPasswordException
     return user

@@ -1,10 +1,12 @@
 from datetime import datetime
 from fastapi.responses import RedirectResponse
 import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, Request
-
+from app.db import async_session_maker
 # from jwt import PyJWKError
 from app.config import settings
+from app.db import get_db_session
 from app.exceptions import (
     IncorrectRoleException,
     IncorrectTokenFormatException,
@@ -23,7 +25,8 @@ def get_token(request: Request):
     return token
 
 
-async def get_refresh_token(token: str = Depends(get_token)):
+async def get_refresh_token(token: str = Depends(get_token),
+                            session: AsyncSession = Depends(get_db_session),):
     """Метод, получающий refresh токен"""
     # декодируем текущий access токен без проверки подписи и времени
     try:
@@ -36,7 +39,7 @@ async def get_refresh_token(token: str = Depends(get_token)):
     if not user_id:
         raise UserIsNotPresentException
     # находим refresh токен для текущего пользователя
-    refresh_user = await TokenService.find_one_or_none(user_id=int(user_id))
+    refresh_user = await TokenService.find_one_or_none(session=session, user_id=int(user_id))
     # если refresh токен просрочен, то выбрасываем исключение
     if datetime.utcnow().timestamp() > refresh_user.expires_at.timestamp():
         raise HTTPException(status_code=401)
@@ -44,7 +47,7 @@ async def get_refresh_token(token: str = Depends(get_token)):
     return refresh_token
 
 
-async def get_current_user(token: str = Depends(get_token)):
+async def get_current_user(token: str = Depends(get_token),):
     """Возвращает текущего пользователя"""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
@@ -56,10 +59,12 @@ async def get_current_user(token: str = Depends(get_token)):
     user_id: str = payload.get("sub")
     if not user_id:
         raise UserIsNotPresentException
-    user = await UsersService.find_one_or_none(id=int(user_id))
-    if not user:
-        raise UserIsNotPresentException
-    return user
+    async with async_session_maker() as session:
+        async with session.begin():
+            user = await UsersService.find_one_or_none(session=session, id=int(user_id))
+            if not user:
+                raise UserIsNotPresentException
+            return user
 
 
 async def get_role(current_user=Depends(get_current_user)):
