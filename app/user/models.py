@@ -10,19 +10,29 @@ class Users(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    group_id: Mapped[int | None] = mapped_column(ForeignKey("groups.id"), nullable=True)
+    hashed_password: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("groups.id"), nullable=True
+    )
 
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     role: Mapped[str | None] = mapped_column(String(15), nullable=True)
 
     # Google OAuth
-    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
-    google_token: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    google_id: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True
+    )
+    google_token: Mapped[str | None] = mapped_column(
+        String(1024), nullable=True
+    )
 
     # Relations
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
     assignments = relationship("Assignments", back_populates="user")
     submissions = relationship("Submissions", back_populates="user")
     group = relationship("Groups", back_populates="students")
@@ -38,7 +48,9 @@ class RefreshToken(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     token: Mapped[str] = mapped_column(String, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime)
 
     user = relationship("Users", back_populates="refresh_tokens")
@@ -61,7 +73,9 @@ class Disciplines(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    teacher_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    teacher_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False
+    )
 
     teacher = relationship("Users", back_populates="disciplines")
 

@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from starlette.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.auth import create_access_token, create_refresh_token
 from app.auth.dependencies import get_current_user
+from app.db import get_db_session
 from app.user.schemas import CompleteProfileSchema
 from app.user.service import GroupsService, UsersService
 from app.config import settings
@@ -43,7 +44,8 @@ async def google_login():
 
 
 @router.get("/callback")
-async def google_callback(request: Request):
+async def google_callback(request: Request,
+                          session: AsyncSession = Depends(get_db_session)):
     state = state_storage.get("google_state")
     if not state:
         raise HTTPException(status_code=400, detail="Missing OAuth state")
@@ -65,11 +67,12 @@ async def google_callback(request: Request):
     first_name = user_info.get("given_name")
     last_name = user_info.get("family_name")
 
-    existing_user = await UsersService.find_one_or_none(email=email)
+    existing_user = await UsersService.find_one_or_none(session=session, email=email)
 
     # если юзер новый — создаем, но роль и группу не трогаем
     if not existing_user:
         user_id = await UsersService.add(
+            session=session,
             email=email,
             google_id=google_id,
             first_name=first_name,
@@ -87,7 +90,8 @@ async def google_callback(request: Request):
         {"sub": str(user_id), "role": user_role or "UNKNOWN"}
     )
     refresh_token = await create_refresh_token(
-        {"sub": str(user_id), "role": user_role or "UNKNOWN"}
+        {"sub": str(user_id), "role": user_role or "UNKNOWN"},
+        session
     )
 
     # сохраняем токен в cookie
@@ -108,16 +112,17 @@ async def google_callback(request: Request):
 
 @router.post("/complete")
 async def complete_profile(
-    data: CompleteProfileSchema, current_user=Depends(get_current_user)
+    data: CompleteProfileSchema, current_user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
 ):
     update_data = {"role": data.role}
     if data.role == "STUDENT" and data.group:
-        group = await GroupsService.find_one_or_none(name=data.group)
+        group = await GroupsService.find_one_or_none(session=session, name=data.group)
         if not group:
-            group_id = await GroupsService.add(name=data.group)
+            group_id = await GroupsService.add(session=session, name=data.group)
         else:
             group_id = group.id
         update_data["group_id"] = group_id
 
-    await UsersService.update(current_user.id, **update_data)
+    await UsersService.update(session, current_user.id, **update_data)
     return {"message": "Profile updated"}
