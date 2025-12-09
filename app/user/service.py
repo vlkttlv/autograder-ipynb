@@ -5,7 +5,7 @@ from app.user.models import Disciplines, RefreshToken, Users, Groups
 from app.db import async_session_maker
 
 
-class UsersService(BaseDAO):
+class UsersDAO(BaseDAO):
     model = Users
 
     @classmethod

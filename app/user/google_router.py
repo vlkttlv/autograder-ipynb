@@ -8,7 +8,7 @@ from app.auth.auth import create_access_token, create_refresh_token
 from app.auth.dependencies import get_current_user
 from app.db import get_db_session
 from app.user.schemas import CompleteProfileSchema
-from app.user.service import GroupsService, UsersService
+from app.user.service import GroupsService, UsersDAO
 from app.config import settings
 
 
@@ -67,11 +67,11 @@ async def google_callback(request: Request,
     first_name = user_info.get("given_name")
     last_name = user_info.get("family_name")
 
-    existing_user = await UsersService.find_one_or_none(session=session, email=email)
+    existing_user = await UsersDAO.find_one_or_none(session=session, email=email)
 
     # если юзер новый — создаем, но роль и группу не трогаем
     if not existing_user:
-        user_id = await UsersService.add(
+        user_id = await UsersDAO.add(
             session=session,
             email=email,
             google_id=google_id,
@@ -124,5 +124,5 @@ async def complete_profile(
             group_id = group.id
         update_data["group_id"] = group_id
 
-    await UsersService.update(session, current_user.id, **update_data)
+    await UsersDAO.update(session, current_user.id, **update_data)
     return {"message": "Profile updated"}

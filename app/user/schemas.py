@@ -76,3 +76,15 @@ class UserResponseSchema(BaseModel):
 class CompleteProfileSchema(BaseModel):
     role: str
     group: str | None = None
+
+
+class UserUpdateSchema(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    group: Optional[str] = None
+
+    @field_validator("group", mode="before")
+    def check_group_first_char(cls, v, info):
+        if not v[0].isdigit():
+            raise ValueError("Группа должна начинаться с цифры.")
+        return v

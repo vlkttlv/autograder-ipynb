@@ -1,6 +1,6 @@
 import jwt
 import logging
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.assignment.services.dao_service import DisciplinesDAO
 from app.db import get_db_session
@@ -16,6 +16,7 @@ from app.user.schemas import (
     UserResponseSchema,
     UserRole,
     UserTestRegisterSchemas,
+    UserUpdateSchema,
 )
 from app.auth.auth import (
     authenticate_user,
@@ -24,7 +25,7 @@ from app.auth.auth import (
     get_password_hash,
 )
 from app.auth.dependencies import get_current_user, get_refresh_token
-from app.user.service import GroupsService, TokenService, UsersService
+from app.user.service import GroupsService, TokenService, UsersDAO
 from app.config import settings
 from app.logger import configure_logging
 
@@ -37,7 +38,7 @@ logger = logging.getLogger("users_service")
 @router.post("/register", status_code=201, summary="Creates a new user")
 async def register_user(user_data: UserRegisterSchema, session: AsyncSession = Depends(get_db_session)):
     """Регистрация пользователя"""
-    existing_user = await UsersService.find_one_or_none(session=session, email=user_data.email)
+    existing_user = await UsersDAO.find_one_or_none(session=session, email=user_data.email)
     if existing_user:
         raise UserAlreadyExistsException
 
@@ -51,7 +52,7 @@ async def register_user(user_data: UserRegisterSchema, session: AsyncSession = D
         else:
             group_id = find_group.id
 
-    await UsersService.add(
+    await UsersDAO.add(
         session=session,
         email=user_data.email,
         first_name=user_data.first_name,
@@ -122,11 +123,11 @@ async def create_test_users():
 
     for user_data in users_data:
         hashed_password = get_password_hash(user_data.password)
-        existing_user = await UsersService.find_one_or_none(
+        existing_user = await UsersDAO.find_one_or_none(
             session=session, email=user_data.email
         )
         if not existing_user:
-            await UsersService.add(
+            await UsersDAO.add(
                 session=session,
                 email=user_data.email,
                 hashed_password=hashed_password,
@@ -164,7 +165,7 @@ async def refresh_token(
 async def get_user(current_user: Users = Depends(get_current_user),
                    session: AsyncSession = Depends(get_db_session)):
     """Получение информации о пользователе"""
-    data = await UsersService.get_full_user_info(session, current_user.id)
+    data = await UsersDAO.get_full_user_info(session, current_user.id)
 
     return {
         "id": data["user"].id,
@@ -176,3 +177,47 @@ async def get_user(current_user: Users = Depends(get_current_user),
             {"id": d.id, "name": d.name} for d in data["disciplines"]
         ],
     }
+
+
+@router.patch(
+    "/me",
+    summary="Updates data"
+)
+async def update_me(
+    data: UserUpdateSchema = Body(...),
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    update_fields = {}
+
+    if data.first_name is not None:
+        update_fields["first_name"] = data.first_name
+    if data.last_name is not None:
+        update_fields["last_name"] = data.last_name
+
+    if current_user.role == UserRole.STUDENT:
+        if data.group is not None:
+            new_group_name = data.group
+            group = await GroupsService.find_one_or_none(session=session, name=new_group_name)
+            if group:
+                update_fields["group_id"] = group.id
+            else:
+                group_id = await GroupsService.add(session=session, name=new_group_name)
+                update_fields["group_id"] = group_id
+    else:
+        if data.group is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="Преподаватель не может изменить группу"
+            )
+
+    if not update_fields:
+        return {"message": "Нет данных для обновления"}
+
+    await UsersDAO.update(
+        session=session,
+        model_id=current_user.id,
+        **update_fields
+    )
+
+    return {"message": "Данные обновлены", "updated": update_fields}
