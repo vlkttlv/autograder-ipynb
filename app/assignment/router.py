@@ -6,6 +6,7 @@ from typing import Optional
 from uuid import UUID
 import nbformat
 from openpyxl import Workbook
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import StreamingResponse
 from fastapi import (
     APIRouter,
@@ -28,13 +29,13 @@ from app.user.models import Users
 from app.user.router import refresh_token
 from app.auth.dependencies import check_tutor_role, get_current_user
 from app.assignment.services.dao_service import (
-    AssignmentFileService,
-    AssignmentService,
-    DisciplinesService,
+    AssignmentFileDAO,
+    AssignmentDAO,
+    DisciplinesDAO,
 )
 from app.submissions.services.service import (
-    SubmissionFilesService,
-    SubmissionsService,
+    SubmissionFilesDAO,
+    SubmissionsDAO,
 )
 from app.assignment.schemas import (
     AssignmentQueryParams,
@@ -55,7 +56,7 @@ from app.exceptions import (
 )
 from app.dropbox.service import dropbox_service
 from app.logger import configure_logging
-
+from app.db import get_db_session
 
 logger = logging.getLogger("assignments_service")
 configure_logging()
@@ -80,28 +81,27 @@ async def add_assignment(
     due_time: time = Form(default=time),
     assignment_file: UploadFile = File(...),
     current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Создание задания"""
     if (due_date < start_date) or (
         due_date == start_date and start_time > due_time
     ):
         raise WgongDateException
-    # TODO
-    # поправить исключения
     if discipline_id:
-        if await DisciplinesService.find_one_or_none(id=discipline_id):
+        if await DisciplinesDAO.find_one_or_none(session=session, id=discipline_id, teacher_id=current_user.id):
             final_discipline_id = discipline_id
         else:
             raise DisciplineNotFoundException
     elif new_discipline_name:
-        discipline = await DisciplinesService.find_one_or_none(
-            name=new_discipline_name
+        discipline = await DisciplinesDAO.find_one_or_none(
+            session=session, name=new_discipline_name, teacher_id=current_user.id
         )
         if discipline:
             final_discipline_id = discipline.id
         else:
-            new_discipline_id = await DisciplinesService.add(
-                name=new_discipline_name, teacher_id=current_user.id
+            new_discipline_id = await DisciplinesDAO.add(
+                session=session, name=new_discipline_name, teacher_id=current_user.id
             )
             final_discipline_id = new_discipline_id
     else:
@@ -112,11 +112,8 @@ async def add_assignment(
     content = await assignment_file.read()
     logger.info(f"Преподаватель {current_user.email} отправил задание")
 
-    (
-        assignment_id,
-        original_assignment,
-        modified_assignment,
-    ) = await AssignmentManagerService.process_and_upload_assignment(
+    assignment_id, original_assignment, modified_assignment = await AssignmentManagerService.process_and_upload_assignment(
+        session=session,
         content=content,
         discipline_id=final_discipline_id,
         name=name,
@@ -143,12 +140,13 @@ async def add_assignment(
     dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
 )
 async def get_assignments(
-    current_user: Users = Depends(get_current_user),
     params: AssignmentQueryParams = Depends(),
     search: Optional[str] = Query(
         None, description="Поиск по названию задания"
     ),
     discipline_id: int | None = Query(None),
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Получение списка заданий с пагинацией, сортировкой и поиском"""
     offset = (params.page - 1) * params.limit
@@ -156,7 +154,8 @@ async def get_assignments(
     desc_order = params.sort == SortEnum.newest
 
     if discipline_id is not None:
-        items = await AssignmentService.find_all(
+        items = await AssignmentDAO.find_all(
+            session=session,
             user_id=current_user.id,
             skip=offset,
             limit=params.limit,
@@ -165,11 +164,15 @@ async def get_assignments(
             search=search,
             discipline_id=discipline_id,
         )
-        total = await AssignmentService.count(
-            user_id=current_user.id, search=search, discipline_id=discipline_id
+        total = await AssignmentDAO.count(
+            session=session,
+            user_id=current_user.id,
+            search=search,
+            discipline_id=discipline_id
         )
     else:
-        items = await AssignmentService.find_all(
+        items = await AssignmentDAO.find_all(
+            session=session,
             user_id=current_user.id,
             skip=offset,
             limit=params.limit,
@@ -177,8 +180,10 @@ async def get_assignments(
             desc_order=desc_order,
             search=search,
         )
-        total = await AssignmentService.count(
-            user_id=current_user.id, search=search
+        total = await AssignmentDAO.count(
+            session=session,
+            user_id=current_user.id,
+            search=search
         )
 
     return {"assignments": items, "total": total}
@@ -189,19 +194,19 @@ async def get_assignments(
     response_model=Optional[AssignmentResponseSchema],
     dependencies=[Depends(refresh_token), Depends(get_current_user)],
 )
-async def get_assignment(assignment_id: str):
+async def get_assignment(assignment_id: str, session: AsyncSession = Depends(get_db_session)):
     """Получение информации о задании по ID"""
-    return await AssignmentService.find_one_or_none(id=assignment_id)
+    return await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
 
 
 @router.get(
     "/{assignment_id}/file/original",
     dependencies=[Depends(refresh_token), Depends(get_current_user)],
 )
-async def get_file_of_original_assignment(assignment_id: str):
+async def get_file_of_original_assignment(assignment_id: str, session: AsyncSession = Depends(get_db_session)):
     """Скачивание оригинального файла задания с Google dropbox"""
-    original_assignment = await AssignmentFileService.find_one_or_none(
-        assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
+    original_assignment = await AssignmentFileDAO.find_one_or_none(
+        session=session, assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
     )
     if original_assignment is None:
         raise AssignmentNotFoundException
@@ -220,10 +225,10 @@ async def get_file_of_original_assignment(assignment_id: str):
     "/{assignment_id}/file/modified",
     dependencies=[Depends(refresh_token), Depends(get_current_user)],
 )
-async def get_file_of_modified_assignment(assignment_id: str):
+async def get_file_of_modified_assignment(assignment_id: str, session: AsyncSession = Depends(get_db_session)):
     """Скачивание модифицированного файла задания с Google dropbox"""
-    modified_assignment = await AssignmentFileService.find_one_or_none(
-        assignment_id=assignment_id, file_type=TypeOfAssignmentFile.MODIFIED
+    modified_assignment = await AssignmentFileDAO.find_one_or_none(
+        session=session, assignment_id=assignment_id, file_type=TypeOfAssignmentFile.MODIFIED
     )
     if modified_assignment is None:
         raise AssignmentNotFoundException
@@ -250,14 +255,15 @@ def remove_tz(t: time) -> time:
 )
 async def update_assignment(
     assignment_id: str, updated_data: AssignmentUpdateSchema = Body(...),
-    current_user: Users = Depends(get_current_user)
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Обновление задания"""
-    assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+    assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     if not assignment:
         raise AssignmentNotFoundException
 
-    # Используем актуальные значения: новые, если переданы, иначе старые
+    # проверка даты и времени
     start_date = updated_data.start_date or assignment.start_date
     due_date = updated_data.due_date or assignment.due_date
 
@@ -271,23 +277,37 @@ async def update_assignment(
     if due_dt <= start_dt:
         raise WgongDateException
     
+    # Определяем дисциплину
+    final_discipline_id = None
+
     if updated_data.discipline_id is not None:
         final_discipline_id = updated_data.discipline_id
-        updated_data.discipline_id = final_discipline_id
-
     elif updated_data.new_discipline_name:
-        discipline = await DisciplinesService.find_one_or_none(
-            name=updated_data.new_discipline_name
+        discipline = await DisciplinesDAO.find_one_or_none(
+            session=session, name=updated_data.new_discipline_name, teacher_id=current_user.id
         )
         if discipline:
             final_discipline_id = discipline.id
         else:
-            new_discipline_id = await DisciplinesService.add(
-                name=updated_data.new_discipline_name, teacher_id=current_user.id
+            final_discipline_id = await DisciplinesDAO.add(
+                session=session,
+                name=updated_data.new_discipline_name,
+                teacher_id=current_user.id
             )
-            final_discipline_id = new_discipline_id
+        updated_data.new_discipline_name = None
 
-    await AssignmentService.update_assignment(assignment_id, updated_data)
+    # Составляем словарь для обновления
+    update_fields = {k: v for k, v in updated_data.dict(exclude_unset=True).items() if v is not None}
+    if final_discipline_id is not None:
+        update_fields["discipline_id"] = final_discipline_id
+    if updated_data.start_time is not None:
+        update_fields["start_time"] = start_time
+    if updated_data.due_time is not None:
+        update_fields["due_time"] = due_time
+
+
+    await AssignmentDAO.update(session=session, model_id=assignment_id, **update_fields)
+    return {"message": "Данные обновлены", "updated": update_fields}
 
 
 @router.patch(
@@ -297,10 +317,11 @@ async def update_assignment(
 async def update_files_of_assignment(
     assignment_id: str,
     assignment_file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_db_session)
 ):
     """Обновление файлов задания на Google dropbox"""
     new_assignment_id = await AssignmentManagerService.update_file(
-        assignment_id=assignment_id, assignment_file=assignment_file
+        session=session, assignment_id=assignment_id, assignment_file=assignment_file
     )
 
     return {"status": "ok", "assignment_id": new_assignment_id}
@@ -310,14 +331,16 @@ async def update_files_of_assignment(
     "/{assignment_id}", status_code=204, dependencies=[Depends(refresh_token)]
 )
 async def delete_assignment(
-    assignment_id: str, current_user: Users = Depends(get_current_user)
+    assignment_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Удаление задания и файлов в Dropbox"""
-    assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+    assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Задание не найдено")
 
-    files = await AssignmentFileService.find_all(assignment_id=assignment_id)
+    files = await AssignmentFileDAO.find_all(session=session, assignment_id=assignment_id)
 
     for f in files:
         if f.file_id:
@@ -329,10 +352,10 @@ async def delete_assignment(
                 )
 
     # Удаляем связанные сущности в БД
-    await SubmissionFilesService.delete(assignment_id=assignment_id)
-    await SubmissionsService.delete(assignment_id=assignment_id)
-    await AssignmentFileService.delete(assignment_id=assignment_id)
-    await AssignmentService.delete(id=assignment_id, user_id=current_user.id)
+    await SubmissionFilesDAO.delete(session=session, assignment_id=assignment_id)
+    await SubmissionsDAO.delete(session=session, assignment_id=assignment_id)
+    await AssignmentFileDAO.delete(session=session, assignment_id=assignment_id)
+    await AssignmentDAO.delete(session=session, id=assignment_id, user_id=current_user.id)
 
 
 @router.get(
@@ -343,22 +366,28 @@ async def delete_assignment(
 async def get_stats(
     assignment_id: str,
     params: AssignmentQueryParams = Depends(),
+    search: Optional[str] = Query(
+        None, description="Поиск по имени студента"
+    ),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Получение статистики по заданию"""
     offset = (params.page - 1) * params.limit
     order_by = "created_at"
     desc_order = params.sort == SortEnum.newest
 
-    assignment = await AssignmentService.find_one_or_none(id=assignment_id)
+    assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     if not assignment:
         raise AssignmentNotFoundException
-    total = await SubmissionsService.count(assignment_id=assignment_id)
-    stats = await SubmissionsService.get_statistics(
+    total = await SubmissionsDAO.count(session=session, assignment_id=assignment_id)
+    stats = await SubmissionsDAO.get_statistics(
+        session=session,
         assignment_id=assignment_id,
         skip=offset,
         limit=params.limit,
         order_by=order_by,
         desc_order=desc_order,
+        search=search,
     )
     return {
         "submissions": stats["submissions"],

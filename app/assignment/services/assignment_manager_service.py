@@ -1,15 +1,13 @@
-import asyncio
-import celery
+from datetime import date, time
 import nbformat
 import logging
-from datetime import date, time
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.assignment.services.notebook_service import NotebookService
 from app.dropbox.service import dropbox_service
 from app.assignment.services.dao_service import (
-    AssignmentService,
-    AssignmentFileService,
-    DisciplinesService,
+    AssignmentDAO,
+    AssignmentFileDAO,
 )
 from app.db import async_session_maker
 from app.assignment.schemas import TypeOfAssignmentFile
@@ -23,6 +21,7 @@ configure_logging()
 class AssignmentManagerService:
     @staticmethod
     async def process_and_upload_assignment(
+        session: AsyncSession,
         content: bytes,
         discipline_id: int,
         name: str,
@@ -46,20 +45,18 @@ class AssignmentManagerService:
         modified_notebook = NotebookService.modify_notebook(notebook)
         modified_assignment = nbformat.writes(modified_notebook).encode("utf-8")
 
-        async with async_session_maker() as session:
-            async with session.begin():
-                assignment = await AssignmentService.add(
-                    session=session,
-                    discipline_id=discipline_id,
-                    name=name,
-                    start_date=start_date,
-                    start_time=start_time,
-                    due_date=due_date,
-                    due_time=due_time,
-                    number_of_attempts=number_of_attempts,
-                    grade=grade,
-                    user_id=user_id,
-                )
+        assignment = await AssignmentDAO.add(
+            session=session,
+            discipline_id=discipline_id,
+            name=name,
+            start_date=start_date,
+            start_time=start_time,
+            due_date=due_date,
+            due_time=due_time,
+            number_of_attempts=number_of_attempts,
+            grade=grade,
+            user_id=user_id,
+        )
         logger.info(
             f"Задание {str(assignment)} создано, загрузка файлов запущена в фоне"
         )
@@ -89,14 +86,14 @@ class AssignmentManagerService:
 
             async with async_session_maker() as session:
                 async with session.begin():
-                    await AssignmentFileService.add(
+                    await AssignmentFileDAO.add(
                         session=session,
                         assignment_id=assignment_id,
                         file_type=TypeOfAssignmentFile.ORIGINAL,
                         file_id=original_file["path"],
                         file_link=original_file["link"],
                     )
-                    await AssignmentFileService.add(
+                    await AssignmentFileDAO.add(
                         session=session,
                         assignment_id=assignment_id,
                         file_type=TypeOfAssignmentFile.MODIFIED,
@@ -113,7 +110,7 @@ class AssignmentManagerService:
             )
 
     @staticmethod
-    async def update_file(assignment_id, assignment_file):
+    async def update_file(session: AsyncSession, assignment_id, assignment_file):
         """Обновление файлов задания"""
         filename = assignment_file.filename
         if not filename.endswith(".ipynb"):
@@ -127,69 +124,67 @@ class AssignmentManagerService:
         modified_notebook = NotebookService.modify_notebook(notebook)
         modified_assignment = nbformat.writes(modified_notebook).encode("utf-8")
 
-        async with async_session_maker() as session:
-            async with session.begin():
-                # получаем текущие записи файлов
-                original_record = await AssignmentFileService.find_one_or_none(
-                    assignment_id=assignment_id,
-                    file_type=TypeOfAssignmentFile.ORIGINAL,
-                    session=session,
-                )
-                modified_record = await AssignmentFileService.find_one_or_none(
-                    assignment_id=assignment_id,
-                    file_type=TypeOfAssignmentFile.MODIFIED,
-                    session=session,
-                )
+        # получаем текущие записи файлов
+        original_record = await AssignmentFileDAO.find_one_or_none(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.ORIGINAL,
+        )
+        modified_record = await AssignmentFileDAO.find_one_or_none(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.MODIFIED,
+        )
 
-                # сохраняем старые файлы
-                old_files_to_delete = []
-                if original_record and original_record.file_id:
-                    old_files_to_delete.append(original_record.file_id)
-                if modified_record and modified_record.file_id:
-                    old_files_to_delete.append(modified_record.file_id)
+        # сохраняем старые файлы
+        old_files_to_delete = []
+        if original_record and original_record.file_id:
+            old_files_to_delete.append(original_record.file_id)
+        if modified_record and modified_record.file_id:
+            old_files_to_delete.append(modified_record.file_id)
 
-                # загружаем новые файлы на dropbox
-                try:
-                    original_file = dropbox_service.upload_file(
-                        file_content=original_assignment,
-                        filename=f"{assignment_id}_original.ipynb",
-                        folder_type="assignments",
-                    )
-                    modified_file = dropbox_service.upload_file(
-                        file_content=modified_assignment,
-                        filename=f"{assignment_id}_modified.ipynb",
-                        folder_type="assignments",
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Ошибка загрузки новых файлов на dropbox: %s", e
-                    )
-                    raise HTTPException(
-                        status_code=500,
-                        detail="Не удалось загрузить файлы на dropbox",
-                    ) from e
+        # загружаем новые файлы на dropbox
+        try:
+            original_file = dropbox_service.upload_file(
+                file_content=original_assignment,
+                filename=f"{assignment_id}_original.ipynb",
+                folder_type="assignments",
+            )
+            modified_file = dropbox_service.upload_file(
+                file_content=modified_assignment,
+                filename=f"{assignment_id}_modified.ipynb",
+                folder_type="assignments",
+            )
+        except Exception as e:
+            logger.error(
+                "Ошибка загрузки новых файлов на dropbox: %s", e
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Не удалось загрузить файлы на dropbox",
+            ) from e
 
-                # обновляем записи в БД
-                await AssignmentFileService.update_or_create(
-                    session=session,
-                    assignment_id=assignment_id,
-                    file_type=TypeOfAssignmentFile.ORIGINAL,
-                    file_id=original_file["path"],
-                    file_link=original_file["link"],
-                )
-                await AssignmentFileService.update_or_create(
-                    session=session,
-                    assignment_id=assignment_id,
-                    file_type=TypeOfAssignmentFile.MODIFIED,
-                    file_id=modified_file["path"],
-                    file_link=modified_file["link"],
-                )
+        # обновляем записи в БД
+        await AssignmentFileDAO.update_or_create(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.ORIGINAL,
+            file_id=original_file["path"],
+            file_link=original_file["link"],
+        )
+        await AssignmentFileDAO.update_or_create(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.MODIFIED,
+            file_id=modified_file["path"],
+            file_link=modified_file["link"],
+        )
 
-                # обновляем оценку
-                grade = NotebookService.get_total_points(notebook)
-                await AssignmentService.update(
-                    model_id=assignment_id, grade=grade, session=session
-                )
+        # обновляем оценку
+        grade = NotebookService.get_total_points(notebook)
+        await AssignmentDAO.update(
+            model_id=assignment_id, grade=grade, session=session
+        )
 
         logger.info("Задание %s успешно обновлено", assignment_id)
         return assignment_id
