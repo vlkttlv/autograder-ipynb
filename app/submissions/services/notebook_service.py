@@ -74,8 +74,8 @@ class NotebookService:
                         client.execute_cell(
                             cell, cell_index=index, store_history=True
                         )
-                    except CellExecutionError:
-                        pass
+                    except CellExecutionError as e:
+                        logger.error(f"ОШИБКА: {e}")
                     if cell.cell_type == "code":
                         if (
                             "# Tests " in cell.source
@@ -96,5 +96,6 @@ class NotebookService:
                                 client.execute_cell(cell, index)
                                 total_points += points
                             except CellExecutionError as ce:
+                                logger.error(f"ОШИБКА: {ce}")
                                 feedback.append(index)
         return (total_points, feedback)

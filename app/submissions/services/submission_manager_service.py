@@ -40,7 +40,7 @@ class SubmissionManagerService:
             raise IncorrectFormatAssignmentException
 
         notebook = read(submission_file.file, as_version=NO_CONVERT)
-        client = NotebookClient(notebook)
+        client = NotebookClient(notebook, kernel_name="autograder-env")
 
         try:
             client.execute()
@@ -143,7 +143,7 @@ class SubmissionManagerService:
             raise DecodingIPYNBException from e
 
         # Проверяем
-        client = NotebookClient(notebook)
+        client = NotebookClient(notebook, kernel_name="autograder-env")
         total_points, feedback = NotebookService.grade_notebook(
             client, notebook, tutor_notebook
         )
