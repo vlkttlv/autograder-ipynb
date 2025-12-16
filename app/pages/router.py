@@ -25,7 +25,7 @@ from app.submissions.services.service import (
 )
 from app.user.models import Users
 from app.db import async_session_maker, get_db_session
-from app.user.service import UsersService
+from app.user.service import UsersDAO
 logger = logging.getLogger("frontend")
 configure_logging()
 router = APIRouter(prefix="/pages", tags=["Фронт"])
@@ -85,34 +85,34 @@ async def tutor_home_page(
     if discipline_id_int is not None:
         items = await AssignmentDAO.find_all(
             session=session,
-            user_id=current_user.id,
             skip=offset,
             limit=limit,
             order_by=order_by,
             desc_order=desc_order,
             search=search,
+            user_id=current_user.id,
             discipline_id=discipline_id_int
         )
         total = await AssignmentDAO.count(
             session=session,
-            user_id=current_user.id,
             search=search,
+            user_id=current_user.id,
             discipline_id=discipline_id_int
         )
     else:
         items = await AssignmentDAO.find_all(
             session=session,
-            user_id=current_user.id,
             skip=offset,
             limit=limit,
             order_by=order_by,
             desc_order=desc_order,
-            search=search
+            search=search,
+            user_id=current_user.id,
         )
         total = await AssignmentDAO.count(
             session=session,
+            search=search,
             user_id=current_user.id,
-            search=search
         )
 
     total_pages = (total + limit - 1) // limit
@@ -289,7 +289,7 @@ async def update_assignment_page(
     current_user: Users = Depends(get_current_user_page),
     session: AsyncSession = Depends(get_db_session)
 ):
-    assignment = await get_assignment(assignment_id)
+    assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     file = await get_file_of_original_assignment(assignment_id, session)
     disciplines = await DisciplinesDAO.find_all(session=session, teacher_id=current_user.id)
     return templates.TemplateResponse(
@@ -423,11 +423,11 @@ async def profile(
         return RedirectResponse(url="/pages/auth/login")
     role = current_user.role
 
-    data = await UsersService.get_full_user_info(session, current_user.id)
+    data = await UsersDAO.get_full_user_info(session, current_user.id)
 
 
     return templates.TemplateResponse(
-        "kabinet.html", {"request": request,
+        "profile.html", {"request": request,
                          "role": role,
                         "first_name": data["user"].first_name,
                         "last_name": data["user"].last_name,
