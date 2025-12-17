@@ -8,4 +8,13 @@ COPY ./requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    scikit-learn \
+    matplotlib \
+    seaborn \
+    scipy
+RUN python -m ipykernel install --name=autograder-env --display-name "Autograder Environment"
+
 COPY . .
