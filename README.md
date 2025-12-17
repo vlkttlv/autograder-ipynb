@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```
 
 ## Переменные окружения
-(корень проекта) - создать файл .env
+(корень проекта) - создать файл .env (или .env-docker для запуска через Docker)
 
 ```
 MODE=DEV
@@ -44,20 +44,37 @@ TEST_DB_NAME=test_db_name
 
 SECRET_KEY=12345qwerty
 ALGORITHM=HS256
+
+POSTGRES_DB=autograder
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+
+GOOGLE_REDIRECT_URI=your_redirect_api
+CLIENT_SECRETS_FILE=path_to_secret_file
+
+DROPBOX_REFRESH_TOKEN=your_token
+DROPBOX_APP_KEY=your_app_key
+DROPBOX_APP_SECRET=your_app_secret
 ```
 
 !!! В postgres должна быть создана БД
+## Запуск через Docker
+```bash
+docker-compose up --build
+```
+Приложение доступно по адресу: ```http://localhost:8000```
 
-## Миграции
+## Запуск локально
+### Миграции
 
 В командной строке ввести:
 ```bash
 alembic upgrade head
 ```
 
-## Запуск приложения
+### Запуск приложения
 
 ```
 uvicorn app.main:app --reload
 ```
-
+Приложение доступно по адресу: ```http://127.0.0.1:8000```
