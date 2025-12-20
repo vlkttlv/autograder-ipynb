@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Профиль пользователя</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/student-home.css') }}">
+  <script src="{{ url_for('static', path='js/profile.js') }}" defer></script>
+  <style>
+    .input-base {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.input-base:focus {
+    border-color: #2563eb;
+    outline: none;
+}
+  </style>
+</head>
+
+<body class="body-base">
+  <nav class="nav-base">
+    <div class="nav-title">IPYNBGrader</div>
+    <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
+      {% if role == 'TUTOR' %}
+      <a href="/pages/tutor-home" class="home-link">Домой</a>
+      {% else %}
+      <a href="/pages/student-home" class="home-link">Домой</a>
+      {% endif %}
+
+      <form id="logout-form">
+        <button type="submit" class="logout-button">Выйти</button>
+      </form>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto mt-10 bg-white p-8 rounded shadow">
+    <h1 class="text-2xl font-semibold mb-6">Профиль пользователя</h1>
+
+    <!-- Текущая информация -->
+    <div class="space-y-3 mb-10 text-lg">
+      <p><span class="font-medium">Имя:</span> {{ first_name }}</p>
+      <p><span class="font-medium">Фамилия:</span> {{ last_name }}</p>
+
+      {% if role == 'TUTOR' %}
+        <p><span class="font-medium">Роль:</span> Преподаватель</p>
+      {% else %}
+        <p><span class="font-medium">Роль:</span> Студент</p>
+        <p><span class="font-medium">Группа:</span> {{ group }}</p>
+      {% endif %}
+
+      {% if disciplines %}
+        <p><span class="font-medium">Дисциплины:</span></p>
+        <ul class="list-disc ml-6">
+          {% for d in disciplines %}
+            <li>{{ d.name }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <!-- Форма обновления данных -->
+    <h2 class="text-xl font-semibold mb-4">Редактировать данные</h2>
+
+    <form id="update-form" class="space-y-5">
+      <div>
+        <label class="block font-medium">Имя</label>
+        <input id="first_name" type="text" class="input-base" value="{{ first_name }}">
+      </div>
+
+      <div>
+        <label class="block font-medium">Фамилия</label>
+        <input id="last_name" type="text" class="input-base" value="{{ last_name }}">
+      </div>
+
+      {% if role == 'STUDENT' %}
+      <div>
+        <label class="block font-medium">Группа</label>
+        <input id="group" type="text" class="input-base" value="{{ group }}">
+      </div>
+      {% endif %}
+
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Сохранить изменения
+      </button>
+    </form>
+
+    <p id="message" class="mt-4 text-green-700 font-medium"></p>
+  </main>
+</body>
+</html>

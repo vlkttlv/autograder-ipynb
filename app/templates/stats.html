@@ -11,6 +11,7 @@
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
       <a href="/pages/tutor-home" class="home-link">Домой</a>
       <form id="logout-form">
         <button type="submit" class="logout-button">Выйти</button>
@@ -27,6 +28,27 @@
         <a href="/assignments/{{ assignment.id }}/stats/download?method=csv" class="download-link" download>csv</a>
         <a href="/assignments/{{ assignment.id }}/stats/download?method=xlsx" class="download-link" download>xlsx</a>
       </h2>
+      <!-- Форма поиска и сортировки -->
+      <form method="get" class="sort-form">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <input type="hidden" name="search" value="{{ search }}">
+        <input type="hidden" name="page" value="{{ current_page }}">
+        <label for="sortSelect">Сортировка:</label>
+        <select id="sortSelect" name="sort" onchange="this.form.submit()">
+          <option value="newest" {% if sort | trim == 'newest' %}selected{% endif %}>Сначала новые</option>
+          <option value="oldest" {% if sort | trim == 'oldest' %}selected{% endif %}>Сначала старые</option>
+        </select>
+        <input 
+          type="text" 
+          name="search" 
+          placeholder="Поиск по названию..." 
+          value="{{ search | default('') }}" 
+          class="px-2 py-1 border rounded"
+        >
+        <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Найти
+        </button>
+      </form>
 
       <table class="stats-table">
         <thead>

@@ -27,6 +27,17 @@ document.getElementById('save-changes-btn').addEventListener('click', async func
   const number_of_attempts = getValueOrExclude(formData.get('number_of_attempts'));
   if (number_of_attempts !== undefined) updatedAssignment.number_of_attempts = number_of_attempts;
 
+  const newDiscipline = formData.get('new_discipline_name').trim();
+  const selectedDiscipline = formData.get('discipline_id');
+
+  if (newDiscipline) {
+      updatedAssignment.new_discipline_name = newDiscipline; // сервер создаст новую
+  } else if (selectedDiscipline) {
+      updatedAssignment.discipline_id = parseInt(selectedDiscipline, 10); // существующая дисциплина
+  }
+
+
+
   try {
     const response = await fetch(`/assignments/${assignmentId}`, {
       method: 'PATCH',

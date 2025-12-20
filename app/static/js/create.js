@@ -2,6 +2,11 @@ document.getElementById('submit-btn').addEventListener('click', async function()
   const form = document.getElementById('assignment-form');
   const formData = new FormData(form);
 
+  // Убираем пустое discipline_id, чтобы FastAPI не ругался
+  if (!formData.get('discipline_id')) {
+    formData.delete('discipline_id');
+  }
+
   const submitButton = document.getElementById('submit-btn');
 
   // Показать сообщение "Создаем тест..." + спиннер

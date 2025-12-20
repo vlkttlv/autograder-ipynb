@@ -12,6 +12,7 @@
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
       <a href="/pages/student-home" class="home-link">Домой</a>
       <form id="logout-form">
         <button type="submit" class="logout-button">Выйти</button>
@@ -66,7 +67,7 @@
           Отправить и оценить решение
         </button>
 
-          <a href="/pages/student-home?page={{ page }}" class="back-button">
+          <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
             Вернуться назад
           </a>
       </div>
@@ -75,7 +76,7 @@
     </div>
     {% else %}
     <div class="button-group">
-      <a href="/pages/student-home?page={{ page }}" class="back-button">
+      <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
         Вернуться назад
       </a>
     </div>

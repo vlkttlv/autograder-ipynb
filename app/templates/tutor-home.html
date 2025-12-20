@@ -11,6 +11,7 @@
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
       <a href="/pages/tutor-home" class="home-link">Домой</a>
       <form id="logout-form">
         <button type="submit" class="logout-button">Выйти</button>
@@ -77,7 +78,7 @@
             <td class="table-cell">{{ a.due_date }} {{ a.due_time.strftime("%H:%M") }}</td>
             <td class="table-cell">{{ a.grade }}</td>
             <td class="table-cell">
-              <a href="/pages/assignments/{{ a.id }}/stats?page={{ current_page }}&sort={{ sort | trim }}{% if search %}&search={{ search }}{% endif %}" class="file-link">Посмотреть статистику</a>
+              <a href="/pages/assignments/{{ a.id }}/stats" class="file-link">Посмотреть статистику</a>
             </td>
           </tr>
           {% endfor %}

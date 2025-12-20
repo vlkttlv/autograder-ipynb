@@ -12,6 +12,7 @@
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
       <a href="/pages/tutor-home" class="home-link">Домой</a>
       <form id="logout-form">
         <button type="submit" class="logout-button">Выйти</button>
@@ -20,11 +21,28 @@
   </nav>
   <main class="main-container">
     <h1 class="main-title">Редактировать задание</h1>
-    <form id="assignment-form" class="space-y-4" enctype="multipart/form-data">
+    <!-- <form id="assignment-form" class="space-y-4" enctype="multipart/form-data"> -->
       <form id="assignment-form" data-assignment-id="{{ assignment.id }}">
       <div>
         <label for="name" class="block font-semibold text-lg">Название задания</label>
         <input type="text" id="name" name="name" value="{{ assignment.name }}" required class="w-full p-2 border border-gray-300 rounded-md">
+      </div>
+        <div>
+        <label for="discipline_id" class="block font-semibold text-lg">Дисциплина</label>
+        <select id="discipline_id" name="discipline_id" class="w-full p-2 border border-gray-300 rounded-md">
+          <option value="">— Выбрать существующую —</option>
+          {% for d in disciplines %}
+            <option value="{{ d.id }}" {% if assignment.discipline_id == d.id %}selected{% endif %}>
+              {{ d.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="new_discipline_name" class="block font-semibold text-lg">Или создать новую дисциплину</label>
+        <input type="text" id="new_discipline_name" name="new_discipline_name"
+              placeholder="Введите название дисциплины"
+              class="w-full p-2 border border-gray-300 rounded-md">
       </div>
       <div>
         <label for="number_of_attempts" class="block font-semibold text-lg">Максимальное количество попыток</label>
@@ -40,11 +58,11 @@
       </div>
       <div>
         <label for="due_date" class="block font-semibold text-lg">Дата сдачи теста</label>
-        <input type="date" id="due_date" name="due_date" value="{{ assignment.due_date.strftime("%H:%M") }}" required class="w-full p-2 border border-gray-300 rounded-md">
+        <input type="date" id="due_date" name="due_date" value="{{ assignment.due_date }}" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
       <div>
         <label for="due_time" class="block font-semibold text-lg">Время сдачи теста</label>
-        <input type="time" id="due_time" name="due_time" value="{{ assignment.due_time }}" required class="w-full p-2 border border-gray-300 rounded-md">
+        <input type="time" id="due_time" name="due_time" value="{{ assignment.due_time.strftime("%H:%M") }}" required class="w-full p-2 border border-gray-300 rounded-md">
       </div>
       <div>
         <label for="assignment_file" class="block font-semibold text-lg">Изменить файл задания</label>
@@ -63,6 +81,10 @@
       </div>
     </form>
     <div id="error-message" class="mt-4 text-red-600 hidden"></div>
+    <div id="loading-message" class="hidden flex items-center gap-2 mt-4 text-blue-600 font-semibold">
+      <div class="w-5 h-5 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <span>Обновляем задание...</span>
+    </div>
   </main>
   <footer class="bg-white border-t mt-12 py-4 text-center text-sm text-gray-500">
     <div class="max-w-6xl mx-auto px-4">

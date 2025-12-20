@@ -11,6 +11,7 @@
   <nav class="nav-base">
     <div class="nav-title">IPYNBGrader</div>
     <div class="nav-actions">
+      <a href="/pages/profile" class="home-link">Профиль</a>
       <a href="/pages/student-home" class="home-link">Домой</a>
       <form id="logout-form">
         <button type="submit" class="logout-button">Выйти</button>
@@ -20,6 +21,35 @@
 
   <main class="main-container">
     <h1 class="main-title">Мои решения</h1>
+    <!-- Форма поиска и сортировки -->
+    <form method="get" class="sort-form">
+      <input type="hidden" name="sort" value="{{ sort }}">
+      <input type="hidden" name="search" value="{{ search }}">
+      <input type="hidden" name="page" value="{{ current_page }}">
+      <label for="disciplineSelect">Дисциплина:</label>
+      <select id="disciplineSelect" name="discipline_id" onchange="this.form.submit()">
+        <option value="">Все дисциплины</option>
+        {% for d in disciplines %}
+          <option value="{{ d.id }}" {% if discipline_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+      <label for="sortSelect">Сортировка:</label>
+      <select id="sortSelect" name="sort" onchange="this.form.submit()">
+        <option value="newest" {% if sort | trim == 'newest' %}selected{% endif %}>Сначала новые</option>
+        <option value="oldest" {% if sort | trim == 'oldest' %}selected{% endif %}>Сначала старые</option>
+      </select>
+
+      <input 
+        type="text" 
+        name="search" 
+        placeholder="Поиск по названию..." 
+        value="{{ search | default('') }}" 
+        class="px-2 py-1 border rounded"
+      >
+      <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Найти
+      </button>
+    </form>
 
     <table class="assignment-table">
       <thead>
@@ -34,7 +64,7 @@
           {% for s in submissions %}
           <tr class="table-row">
             <td class="table-cell">
-              <a href="/pages/assignments/{{ s.assignment_id }}?page={{ current_page }}" class="assignment-link">{{ s.assignment.name }}</a>
+              <a href="/pages/assignments/{{ s.assignment_id }}?page={{ current_page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="assignment-link">{{ s.assignment.name }}</a>
            </td>
             <td class="table-cell">{{ s.number_of_attempts }}/{{ s.assignment.number_of_attempts }}</td>
             <td class="table-cell">{{ s.score or 0 }}/{{ s.assignment.grade }}</td>
@@ -50,17 +80,17 @@
     <div class="pagination">
       {% if total_pages > 1 %}
         {% if current_page > 1 %}
-          <a href="?page=1&sort={{ sort }}" class="">&laquo;</a>
-          <a href="?page={{ current_page-1 }}&sort={{ sort }}" class="">&lt;</a>
+          <a href="?page=1&sort={{ sort }}&search={{ search}}&discipline_id={{ discipline_id }}" class="">&laquo;</a>
+          <a href="?page={{ current_page-1 }}&sort={{ sort }}&search={{ search}}&discipline_id={{ discipline_id }}" class="">&lt;</a>
         {% endif %}
 
         {% for p in range(1, total_pages+1) %}
-          <a href="?page={{ p }}&sort={{ sort }}" class="{% if p == current_page %}active{% endif %}">{{ p }}</a>
+          <a href="?page={{ p }}&sort={{ sort }}&search={{ search}}&discipline_id={{ discipline_id }}" class="{% if p == current_page %}active{% endif %}">{{ p }}</a>
         {% endfor %}
 
         {% if current_page < total_pages %}
-          <a href="?page={{ current_page+1 }}&sort={{ sort }}" class="">&gt;</a>
-          <a href="?page={{ total_pages }}&sort={{ sort }}" class="">&raquo;</a>
+          <a href="?page={{ current_page+1 }}&sort={{ sort }}&search={{ search}}&discipline_id={{ discipline_id }}" class="">&gt;</a>
+          <a href="?page={{ total_pages }}&sort={{ sort }}&search={{ search}}&discipline_id={{ discipline_id }}" class="">&raquo;</a>
         {% endif %}
       {% endif %}
     </div>
