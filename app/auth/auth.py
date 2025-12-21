@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from app.db import get_db_session
 from app.exceptions import IncorrectEmailOrPasswordException
 from app.config import settings
-from app.user.service import TokenService, UsersService
+from app.user.service import TokenService, UsersDAO
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -70,7 +70,7 @@ async def authenticate_user(email: EmailStr, password: str, session: AsyncSessio
         Optional[users]: Экземпляр модели пользователя, если запись найдена.
         Если запись не найдена, возвращается None.
     """
-    user = await UsersService.find_one_or_none(session=session, email=email)
+    user = await UsersDAO.find_one_or_none(session=session, email=email)
     if not (user and verify_password(password, user.hashed_password)):
         raise IncorrectEmailOrPasswordException
     return user

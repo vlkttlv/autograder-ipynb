@@ -15,7 +15,7 @@ from app.exceptions import (
     UserIsNotPresentException,
 )
 from app.user.models import Users
-from app.user.service import TokenService, UsersService
+from app.user.service import TokenService, UsersDAO
 from app.db import async_session_maker, get_db_session
 from app.logger import configure_logging
 
@@ -76,7 +76,7 @@ async def get_current_user_page(token: str = Depends(get_token_page)):
         return RedirectResponse(url="/pages/auth/login")
     async with async_session_maker() as session:
         async with session.begin():
-            user = await UsersService.find_one_or_none(session=session, id=int(user_id))
+            user = await UsersDAO.find_one_or_none(session=session, id=int(user_id))
             if not user:
                 # raise UserIsNotPresentException
                 return RedirectResponse(url="/pages/auth/login")

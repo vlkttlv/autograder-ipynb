@@ -14,7 +14,7 @@ from app.exceptions import (
     TokenExpiredException,
     UserIsNotPresentException,
 )
-from app.user.service import TokenService, UsersService
+from app.user.service import TokenService, UsersDAO
 
 
 def get_token(request: Request):
@@ -61,7 +61,7 @@ async def get_current_user(token: str = Depends(get_token),):
         raise UserIsNotPresentException
     async with async_session_maker() as session:
         async with session.begin():
-            user = await UsersService.find_one_or_none(session=session, id=int(user_id))
+            user = await UsersDAO.find_one_or_none(session=session, id=int(user_id))
             if not user:
                 raise UserIsNotPresentException
             return user
