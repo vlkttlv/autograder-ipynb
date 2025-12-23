@@ -95,7 +95,7 @@ async def logout_user(
 
 
 @router.post("/test", summary="Creates the test users")
-async def create_test_users():
+async def create_test_users(session: AsyncSession = Depends(get_db_session)):
     """Создание тестовых пользователей"""
     users_data = [
         UserTestRegisterSchemas(
