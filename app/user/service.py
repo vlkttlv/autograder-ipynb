@@ -1,7 +1,9 @@
 from sqlalchemy import update, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.service.base import BaseDAO
-from app.user.models import Disciplines, RefreshToken, Users, Groups
+from app.user.models import Users
+from app.models import RefreshToken, Groups
+from app.discipline.models import Disciplines
 from app.db import async_session_maker
 
 

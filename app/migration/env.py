@@ -9,7 +9,9 @@ from alembic import context
 
 from app.db import Base
 from app.config import settings
-from app.user.models import Users, RefreshToken
+from app.user.models import Users
+from app.models import RefreshToken, Groups
+from app.discipline.models import Disciplines
 from app.assignment.models import Assignments, AssignmentFile
 from app.submissions.models import Submissions, SubmissionFiles
 

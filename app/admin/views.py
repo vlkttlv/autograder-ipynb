@@ -1,6 +1,8 @@
 from sqladmin import ModelView
 from app.assignment.models import AssignmentFile, Assignments
-from app.user.models import Disciplines, Groups, RefreshToken, Users
+from app.user.models import Users
+from app.models import Groups, RefreshToken
+from app.discipline.models import Disciplines
 from app.submissions.models import SubmissionFiles, Submissions
 
 

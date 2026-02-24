@@ -47,21 +47,32 @@
       <p><span class="font-medium">Имя:</span> {{ first_name }}</p>
       <p><span class="font-medium">Фамилия:</span> {{ last_name }}</p>
 
-      {% if role == 'TUTOR' %}
-        <p><span class="font-medium">Роль:</span> Преподаватель</p>
-      {% else %}
-        <p><span class="font-medium">Роль:</span> Студент</p>
+      {% if role == 'STUDENT' %}
         <p><span class="font-medium">Группа:</span> {{ group }}</p>
       {% endif %}
-
-      {% if disciplines %}
-        <p><span class="font-medium">Дисциплины:</span></p>
-        <ul class="list-disc ml-6">
-          {% for d in disciplines %}
-            <li>{{ d.name }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
+      {% if role == 'TUTOR' %}
+          {% if disciplines %}
+          <h2 class="text-xl font-semibold mb-4">Дисциплины</h2>
+            {% for discipline in disciplines %}
+            <div class="border p-2 rounded flex justify-between items-center">
+                <span>{{ discipline.name }}</span>
+                <div class="space-x-2">
+                    <button class="editDisc text-blue-600" data-id="{{ discipline.id }}">Редактировать</button>
+                    <button class="delDisc text-red-600" data-id="{{ discipline.id }}">Удалить</button>
+                </div>
+            </div>
+            
+            {% endfor %}
+                <div class="flex mb-4 space-x-2">
+        <input id="newDisciplineName" class="input-base" placeholder="Название дисциплины">
+        <button id="addDisciplineBtn" class="bg-green-600 text-white px-4 py-2 rounded">
+            Добавить
+        </button>
+    </div>
+        {% else %}
+            <p class="text-gray-500">Нет дисциплин</p>
+        {% endif %}
+        {% endif %}
     </div>
 
     <!-- Форма обновления данных -->

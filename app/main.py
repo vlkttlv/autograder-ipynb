@@ -19,6 +19,7 @@ from app.user.google_router import router as google_router
 from app.assignment.router import router as assignment_router
 from app.submissions.router import router as submission_router
 from app.submissions.router import sub_router as two_submission_router
+from app.discipline.router import router as discipline_router
 from app.logger import configure_logging, setup_fastapi_exception_logging
 from app.pages.router import router as frontend
 from app.admin.auth import authentication_backend
@@ -42,6 +43,7 @@ app.add_middleware(
 app.include_router(user_router)
 app.include_router(google_router)
 app.include_router(assignment_router)
+app.include_router(discipline_router)
 app.include_router(submission_router)
 app.include_router(two_submission_router)
 app.include_router(frontend)

@@ -1,11 +1,9 @@
 from sqlalchemy import select, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.assignment.schemas import AssignmentUpdateSchema
-from app.db import async_session_maker
 from app.service.base import BaseDAO
 from app.assignment.models import AssignmentFile, Assignments
 from app.submissions.models import Submissions
-from app.user.models import Disciplines
+from app.discipline.models import Disciplines
 
 
 class AssignmentDAO(BaseDAO):
