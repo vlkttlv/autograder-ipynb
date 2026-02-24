@@ -5,11 +5,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.assignment.router import (
-    get_assignment,
     get_file_of_original_assignment,
-    get_stats,
 )
-from app.assignment.schemas import AssignmentQueryParams, SortEnum
+from app.assignment.schemas import SortEnum
 from app.assignment.services.dao_service import AssignmentDAO, DisciplinesDAO
 from app.auth.dependencies_page import (
     check_student_role_page,

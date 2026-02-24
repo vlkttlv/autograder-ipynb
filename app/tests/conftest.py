@@ -14,6 +14,7 @@ from app.assignment.models import Assignments
 from app.submissions.models import Submissions
 
 from app.main import app as fastapi_app
+
 logger = logging.getLogger(__name__)
 configure_logging()
 
@@ -26,7 +27,9 @@ async def prepare_database():
         await conn.run_sync(Base.metadata.create_all)
 
         def open_test_json(model: str):
-            with open(f"app/tests/mock_data/{model}.json", "r", encoding='utf-8') as file:
+            with open(
+                f"app/tests/mock_data/{model}.json", "r", encoding="utf-8"
+            ) as file:
                 return json.load(file)
 
         users = open_test_json("users")
@@ -39,34 +42,53 @@ def event_loop(request):
     yield loop
     loop.close()
 
+
 @pytest.fixture(scope="session")
 async def async_client():
-    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=fastapi_app), base_url="http://test"
+    ) as ac:
         yield ac
 
 
 @pytest.fixture(scope="session")
 async def auth_admin_ac():
-    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as ac:
-        await ac.post("/auth/login", json={"email": "admin@example.com", "password": "password"})
+    async with AsyncClient(
+        transport=ASGITransport(app=fastapi_app), base_url="http://test"
+    ) as ac:
+        await ac.post(
+            "/auth/login",
+            json={"email": "admin@example.com", "password": "password"},
+        )
         assert ac.cookies["access_token"]
         yield ac
 
 
 @pytest.fixture(scope="session")
 async def auth_tutor_ac():
-    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as ac:
-        await ac.post("/auth/login", json={"email": "tutor@example.com", "password": "password"})
+    async with AsyncClient(
+        transport=ASGITransport(app=fastapi_app), base_url="http://test"
+    ) as ac:
+        await ac.post(
+            "/auth/login",
+            json={"email": "tutor@example.com", "password": "password"},
+        )
         assert ac.cookies["access_token"]
         yield ac
 
 
 @pytest.fixture(scope="session")
 async def auth_student_ac():
-    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as ac:
-        await ac.post("/auth/login", json={"email": "student@example.com", "password": "password"})
+    async with AsyncClient(
+        transport=ASGITransport(app=fastapi_app), base_url="http://test"
+    ) as ac:
+        await ac.post(
+            "/auth/login",
+            json={"email": "student@example.com", "password": "password"},
+        )
         assert ac.cookies["access_token"]
         yield ac
+
 
 @pytest.fixture(scope="function")
 async def session():
@@ -79,8 +101,12 @@ def set_temporary_dirs():
     old_original_env = os.getenv("ASSIGNMENT_ORIGINAL_DIR")
     old_modified_env = os.getenv("ASSIGNMENT_MODIFIED_DIR")
 
-    os.environ["ASSIGNMENT_ORIGINAL_DIR"] = "app\\tests\\mock_data\\mock_assignments\\original_assignments"
-    os.environ["ASSIGNMENT_MODIFIED_DIR"] = "app\\tests\\mock_data\\mock_assignments\\modified_assignments"
+    os.environ["ASSIGNMENT_ORIGINAL_DIR"] = (
+        "app\\tests\\mock_data\\mock_assignments\\original_assignments"
+    )
+    os.environ["ASSIGNMENT_MODIFIED_DIR"] = (
+        "app\\tests\\mock_data\\mock_assignments\\modified_assignments"
+    )
 
     yield
 

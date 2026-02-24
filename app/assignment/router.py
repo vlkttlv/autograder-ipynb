@@ -358,37 +358,34 @@ async def delete_assignment(
     await AssignmentDAO.delete(session=session, id=assignment_id, user_id=current_user.id)
 
 
-@router.get(
-    "/{assignment_id}/stats",
-    response_model=StatsResponse,
-    dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
-)
-async def get_stats(
+async def get_stats_data(
     assignment_id: str,
-    params: AssignmentQueryParams = Depends(),
-    search: Optional[str] = Query(
-        None, description="Поиск по имени студента"
-    ),
-    session: AsyncSession = Depends(get_db_session),
-):
-    """Получение статистики по заданию"""
-    offset = (params.page - 1) * params.limit
+    session: AsyncSession,
+    page: int = 1,
+    limit: int = 10,
+    sort: SortEnum = SortEnum.newest,
+    search: Optional[str] = None
+) -> dict:
+    """Функция для получения статистики"""
+    offset = (page - 1) * limit
     order_by = "created_at"
-    desc_order = params.sort == SortEnum.newest
+    desc_order = sort == SortEnum.newest
 
     assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     if not assignment:
         raise AssignmentNotFoundException
+    
     total = await SubmissionsDAO.count(session=session, assignment_id=assignment_id)
     stats = await SubmissionsDAO.get_statistics(
         session=session,
         assignment_id=assignment_id,
         skip=offset,
-        limit=params.limit,
+        limit=limit,
         order_by=order_by,
         desc_order=desc_order,
         search=search,
     )
+    
     return {
         "submissions": stats["submissions"],
         "average_score": stats["average_score"],
@@ -397,12 +394,47 @@ async def get_stats(
 
 
 @router.get(
+    "/{assignment_id}/stats",
+    response_model=StatsResponse,
+    dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
+)
+async def get_stats(
+    assignment_id: str,
+    params: AssignmentQueryParams = Depends(),
+    search: Optional[str] = Query(None, description="Поиск по имени студента"),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Получение статистики по заданию"""
+    return await get_stats_data(
+        assignment_id=assignment_id,
+        session=session,
+        page=params.page,
+        limit=params.limit,
+        sort=params.sort,
+        search=search
+    )
+
+
+@router.get(
     "/{assignment_id}/stats/download",
     dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
 )
-async def get_stats_to_csv(assignment_id: str, method: ExportMethod):
+async def get_stats_to_csv(
+    assignment_id: str, 
+    method: ExportMethod,
+    session: AsyncSession = Depends(get_db_session)
+):
     """Выгрузка статистики в csv/excel"""
-    stats = await get_stats(assignment_id)
+
+    stats = await get_stats_data(
+        assignment_id=assignment_id,
+        session=session,
+        page=1,
+        limit=10000,
+        sort=SortEnum.newest,
+        search=None
+    )
+    
     stat = stats["submissions"]
     headers = ["Студент", "Почта", "Количество попыток", "Баллы"]
 
@@ -452,7 +484,6 @@ async def get_stats_to_csv(assignment_id: str, method: ExportMethod):
                 "Content-Disposition": f"attachment; filename=stats_{assignment_id}.xlsx"
             },
         )
-
 
 @router.post("/process")
 async def process(assignment_file: UploadFile = File(...)):

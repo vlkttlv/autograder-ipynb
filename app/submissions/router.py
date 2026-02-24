@@ -52,7 +52,6 @@ async def add_submission(
         "submission_id": submission_id,
     }
 
-
 @router.post(
     "/{assignment_id}/submissions/evaluate",
     dependencies=[Depends(refresh_token), Depends(check_student_role)],

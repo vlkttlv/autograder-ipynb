@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir \
     matplotlib \
     seaborn \
     scipy
+    
 RUN python -m ipykernel install --name=autograder-env --display-name "Autograder Environment"
 
 COPY . .
