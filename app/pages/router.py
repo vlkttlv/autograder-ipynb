@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.assignment.router import (
     get_file_of_original_assignment,
 )
-from app.assignment.schemas import SortEnum
-from app.assignment.services.dao_service import AssignmentDAO, DisciplinesDAO
+from app.assignment.schemas import SortEnum, TypeOfAssignmentFile
+from app.assignment.services.dao_service import AssignmentDAO, AssignmentFileDAO, DisciplinesDAO
 from app.auth.dependencies_page import (
     check_student_role_page,
     check_tutor_role_page,
@@ -154,6 +154,13 @@ async def assignment_page(
         discipline = await DisciplinesDAO.find_one_or_none(
             session=session, id=assignment.discipline_id
         )
+
+        resources = await AssignmentFileDAO.find_all(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.RESOURCE,
+        )
+
         return templates.TemplateResponse(
             "assignment.html",
             {
@@ -163,6 +170,7 @@ async def assignment_page(
                 "page": page,
                 "sort": sort,
                 "search": search or "",
+                "resources": resources,
                 "discipline_id": discipline_id,
             },
         )
@@ -188,6 +196,12 @@ async def assignment_page(
         ):
             due = True
 
+        resources = await AssignmentFileDAO.find_all(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.RESOURCE,
+        )
+        
         return templates.TemplateResponse(
             "assignment-for-student.html",
             {
@@ -199,6 +213,7 @@ async def assignment_page(
                 "page": page,
                 "sort": sort,
                 "search": search or "",
+                "resources": resources,
                 "discipline_id": discipline_id,
             },
         )

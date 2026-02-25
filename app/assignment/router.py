@@ -80,6 +80,7 @@ async def add_assignment(
     due_date: date = Form(default=date.today()),
     due_time: time = Form(default=time),
     assignment_file: UploadFile = File(...),
+    resource_files: list[UploadFile] | None = File(default=None),
     current_user: Users = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ):
@@ -125,13 +126,83 @@ async def add_assignment(
         user_id=current_user.id,
     )
 
+    resource_payload = []
+    if resource_files:
+        for resource_file in resource_files:
+            if resource_file and resource_file.filename:
+                resource_payload.append(
+                    {
+                        "filename": resource_file.filename,
+                        "content": await resource_file.read(),
+                    }
+                )
+
+
     background_tasks.add_task(
         AssignmentManagerService.upload_to_dropbox_and_finalize,
         assignment_id,
         original_assignment,
         modified_assignment,
     )
+
+    if resource_payload:
+        background_tasks.add_task(
+            AssignmentManagerService.upload_resource_files,
+            assignment_id,
+            resource_payload,
+        )
     return {"status": "accepted", "assignment_id": assignment_id}
+
+@router.get(
+    "/{assignment_id}/resources",
+    dependencies=[Depends(refresh_token), Depends(get_current_user)],
+)
+async def get_assignment_resources(
+    assignment_id: str,
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Список дополнительных файлов задания."""
+    resources = await AssignmentFileDAO.find_all(
+        session=session,
+        assignment_id=assignment_id,
+        file_type=TypeOfAssignmentFile.RESOURCE,
+    )
+    return [
+        {
+            "id": resource.id,
+            "name": resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1],
+            "download_url": f"/assignments/{assignment_id}/resources/{resource.id}",
+        }
+        for resource in resources
+    ]
+
+
+@router.get(
+    "/{assignment_id}/resources/{resource_id}",
+    dependencies=[Depends(refresh_token), Depends(get_current_user)],
+)
+async def download_assignment_resource(
+    assignment_id: str,
+    resource_id: int,
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Скачивание дополнительного файла задания."""
+    resource = await AssignmentFileDAO.find_one_or_none(
+        session=session,
+        id=resource_id,
+        assignment_id=assignment_id,
+        file_type=TypeOfAssignmentFile.RESOURCE,
+    )
+    if resource is None:
+        raise AssignmentNotFoundException
+
+    filename = resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1]
+    content = dropbox_service.download_file(resource.file_id)
+    return Response(
+        content=content,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get(

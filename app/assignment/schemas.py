@@ -36,6 +36,7 @@ class AssignmentUpdateSchema(BaseModel):
 class TypeOfAssignmentFile(str, Enum):
     ORIGINAL = "ORIGINAL"
     MODIFIED = "MODIFIED"
+    RESOURCE = "RESOURCE"
 
 
 class ExportMethod(str, Enum):

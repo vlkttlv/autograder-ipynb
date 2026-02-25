@@ -29,6 +29,16 @@
       <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
       <p><a href="/assignments/{{ assignment.id }}/file/original" class="file-link">Скачать оригинальное задание</a></p>
       <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать модифицированное задание</a></p>
+      {% if resources %}
+      <!-- <div> -->
+        <p><strong>Дополнительные файлы:</strong></p>
+          {% for resource in resources %}
+            <a href="/assignments/{{ assignment.id }}/resources/{{ resource.id }}" class="file-link">
+              {{resource.file_id.split('_resource_', 1)[-1].split('_', 1)[-1] }}
+            </a>
+          {% endfor %}
+      <!-- </div> -->
+      {% endif %}
       <p><a href="/pages/assignments/{{ assignment.id }}/stats" class="file-link">Посмотреть статистику</a></p>
     </div>
     <div class="back-button-container">

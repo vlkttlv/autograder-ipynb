@@ -1,4 +1,5 @@
 from datetime import date, time
+from pathlib import Path
 import nbformat
 import logging
 from fastapi import HTTPException
@@ -62,6 +63,42 @@ class AssignmentManagerService:
         )
         return str(assignment), original_assignment, modified_assignment
 
+    @staticmethod
+    async def upload_resource_files(assignment_id: str, resource_files: list):
+        """Фоновая загрузка дополнительных файлов задания"""
+        if not resource_files:
+            return
+
+        logger.info(
+            "Дополнительные файлы задания %s начали загружаться в dropbox",
+            assignment_id,
+        )
+
+        async with async_session_maker() as session:
+            async with session.begin():
+                for index, resource in enumerate(resource_files, start=1):
+                    original_name = Path(resource["filename"]).name
+                    upload_name = (
+                        f"{assignment_id}_resource_{index}_{original_name}"
+                    )
+                    uploaded = dropbox_service.upload_file(
+                        file_content=resource["content"],
+                        filename=upload_name,
+                        folder_type="assignments",
+                    )
+                    await AssignmentFileDAO.add(
+                        session=session,
+                        assignment_id=assignment_id,
+                        file_type=TypeOfAssignmentFile.RESOURCE,
+                        file_id=uploaded["path"],
+                        file_link=uploaded["link"],
+                    )
+
+        logger.info(
+            "Дополнительные файлы задания %s успешно загружены",
+            assignment_id,
+        )
+    
     @staticmethod
     async def upload_to_dropbox_and_finalize(assignment_id, original, modified):
         """Фоновая загрузка файлов на Google dropbox и сохранение их ID в БД"""

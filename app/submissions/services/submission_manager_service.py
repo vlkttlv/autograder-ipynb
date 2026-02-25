@@ -1,5 +1,10 @@
 import logging
 import nbformat
+import os
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
+
 from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
 from nbclient.exceptions import CellExecutionError
@@ -24,6 +29,21 @@ logger = logging.getLogger(__name__)
 configure_logging()
 
 
+@contextmanager
+def prepared_assignment_workspace(resource_files: list[tuple[str, bytes]]):
+    """Создаёт временную рабочую директорию с файлами задания."""
+    old_cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        for filename, content in resource_files:
+            target = Path(tmp_dir) / Path(filename).name
+            target.write_bytes(content)
+        os.chdir(tmp_dir)
+        try:
+            yield
+        finally:
+            os.chdir(old_cwd)
+
+
 class SubmissionManagerService:
     @staticmethod
     async def process_and_upload_submission(
@@ -41,9 +61,23 @@ class SubmissionManagerService:
 
         notebook = read(submission_file.file, as_version=NO_CONVERT)
         client = NotebookClient(notebook, kernel_name="autograder")
+        
+        assignment_resources = await AssignmentFileDAO.find_all(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.RESOURCE,
+        )
+        resources = [
+            (
+                resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1],
+                dropbox_service.download_file(resource.file_id),
+            )
+            for resource in assignment_resources
+        ]
 
         try:
-            client.execute()
+            with prepared_assignment_workspace(resources):
+                client.execute()
         except CellExecutionError as e:
             if "AssertionError" not in str(e):
                 raise SyntaxException from e
@@ -141,12 +175,26 @@ class SubmissionManagerService:
             )
         except Exception as e:
             raise DecodingIPYNBException from e
+        
+        assignment_resources = await AssignmentFileDAO.find_all(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.RESOURCE,
+        )
+        resources = [
+            (
+                resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1],
+                dropbox_service.download_file(resource.file_id),
+            )
+            for resource in assignment_resources
+        ]
 
         # Проверяем
         client = NotebookClient(notebook, kernel_name="autograder")
-        total_points, feedback = NotebookService.grade_notebook(
-            client, notebook, tutor_notebook
-        )
+        with prepared_assignment_workspace(resources):
+            total_points, feedback = NotebookService.grade_notebook(
+                client, notebook, tutor_notebook
+            )
 
         # Обновляем результат
         await SubmissionsDAO.update(

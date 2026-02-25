@@ -44,6 +44,17 @@
       {% endif %}
 
       <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать задание</a></p>
+      {% if resources %}
+      <!-- <div> -->
+        <p><strong>Дополнительные файлы:</strong></p>
+          {% for resource in resources %}
+            <a href="/assignments/{{ assignment.id }}/resources/{{ resource.id }}" class="file-link">
+              {{resource.file_id.split('_resource_', 1)[-1].split('_', 1)[-1] }}
+            </a>
+          {% endfor %}
+      <!-- </div> -->
+      {% endif %}
+
     </div>
     {% if submission_file %}
     <div>
