@@ -17,9 +17,14 @@ class AdminAuth(AuthenticationBackend):
         async with async_session_maker() as session:
             async with session.begin():
                 user = await authenticate_user(email, password, session)
-                if user:
-                    access_token = create_access_token({"sub": str(user.id)})
-                    request.session.update({"token": access_token})
+                if not user:
+                    return False
+
+                if user.role != "ADMIN":
+                    return False
+
+                access_token = create_access_token({"sub": str(user.id)})
+                request.session.update({"token": access_token})
 
         return True
 
@@ -32,7 +37,10 @@ class AdminAuth(AuthenticationBackend):
 
         if not token:
             return RedirectResponse(request.url_for("admin:login"), status_code=302)
-        user = await get_current_user(token)
+        try:
+            user = await get_current_user(token)
+        except Exception:
+            return RedirectResponse(request.url_for("admin:login"), status_code=302)
         if not user or user.role != 'ADMIN':
             return RedirectResponse(request.url_for("admin:login"), status_code=302)
         else:
