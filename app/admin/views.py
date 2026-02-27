@@ -39,7 +39,7 @@ class GroupsAdmin(ModelView, model=Groups):
 
 class DisciplinesAdmin(ModelView, model=Disciplines):
     column_list = [c.name for c in Disciplines.__table__.c] + [
-        Disciplines.teacher
+        Disciplines.teachers
     ]
     name = "Дисциплина"
     name_plural = "Дисциплины"

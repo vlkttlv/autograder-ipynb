@@ -41,8 +41,10 @@ async def update_discipline(
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user)
 ):
-    discipline = await DisciplinesDAO.find_one_or_none(session=session, id=discipline_id)
-    if discipline.teacher_id != current_user.id:
+    discipline = await DisciplinesDAO.find_one_or_none(
+        session=session, id=discipline_id, teacher_id=current_user.id
+    )
+    if not discipline:
         raise HTTPException(
                 status_code=400,
                 detail="Студент не может изменять дисциплину"
@@ -57,8 +59,10 @@ async def delete_discipline(
     session: AsyncSession = Depends(get_db_session),
     current_user=Depends(get_current_user)
 ):
-    discipline = await DisciplinesDAO.find_one_or_none(session=session, id=discipline_id)
-    if discipline.teacher_id != current_user.id:
+    discipline = await DisciplinesDAO.find_one_or_none(
+        session=session, id=discipline_id, teacher_id=current_user.id
+    )
+    if not discipline:
         raise HTTPException(
                 status_code=400,
                 detail="Студент не может изменять дисциплину"
@@ -71,4 +75,4 @@ async def delete_discipline(
                 detail="По данной дисциплине есть задания"
             )
     
-    await DisciplinesDAO.delete(session=session, id=discipline_id)
+    await DisciplinesDAO.delete(session=session, id=discipline_id, teacher_id=current_user.id)

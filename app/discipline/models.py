@@ -8,10 +8,9 @@ class Disciplines(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    teacher_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     teachers = relationship(
-        "User",
+        "Users",
         secondary="discipline_teacher",
         back_populates="disciplines"
     )
