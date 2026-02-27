@@ -1,9 +1,9 @@
-from sqlalchemy import select, func, desc, asc
+from sqlalchemy import select, func, desc, asc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.service.base import BaseDAO
 from app.assignment.models import AssignmentFile, Assignments
 from app.submissions.models import Submissions
-from app.discipline.models import Disciplines
+from app.discipline.models import DisciplineTeacher, Disciplines
 
 
 class AssignmentDAO(BaseDAO):
@@ -119,6 +119,101 @@ class AssignmentFileDAO(BaseDAO):
 
 class DisciplinesDAO(BaseDAO):
     model = Disciplines
+
+    @classmethod
+    async def find_one_or_none(
+        cls,
+        session: AsyncSession,
+        teacher_id: int | None = None,
+        **filter_by,
+    ):
+        stmt = select(cls.model).filter_by(**filter_by)
+
+        if teacher_id is not None:
+            stmt = stmt.join(
+                DisciplineTeacher,
+                and_(
+                    DisciplineTeacher.discipline_id == cls.model.id,
+                    DisciplineTeacher.teacher_id == teacher_id,
+                ),
+            )
+
+        res = await session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    @classmethod
+    async def find_all(
+        cls,
+        session: AsyncSession,
+        teacher_id: int | None = None,
+        **filter_by,
+    ):
+        stmt = select(cls.model).filter_by(**filter_by)
+
+        if teacher_id is not None:
+            stmt = stmt.join(
+                DisciplineTeacher,
+                and_(
+                    DisciplineTeacher.discipline_id == cls.model.id,
+                    DisciplineTeacher.teacher_id == teacher_id,
+                ),
+            )
+
+        result = await session.execute(stmt)
+        return result.scalars().all()
+
+    @classmethod
+    async def add(
+        cls,
+        session: AsyncSession,
+        teacher_id: int | None = None,
+        **data,
+    ) -> int:
+        discipline_id = await super().add(session=session, **data)
+
+        if teacher_id is not None:
+            await session.execute(
+                DisciplineTeacher.__table__.insert().values(
+                    discipline_id=discipline_id,
+                    teacher_id=teacher_id,
+                )
+            )
+
+        return discipline_id
+
+    @classmethod
+    async def delete(
+        cls,
+        session: AsyncSession,
+        teacher_id: int | None = None,
+        **filter_by,
+    ) -> None:
+        discipline = await cls.find_one_or_none(
+            session=session,
+            teacher_id=teacher_id,
+            **filter_by,
+        )
+        if not discipline:
+            return
+
+        if teacher_id is not None:
+            await session.execute(
+                DisciplineTeacher.__table__.delete().where(
+                    and_(
+                        DisciplineTeacher.discipline_id == discipline.id,
+                        DisciplineTeacher.teacher_id == teacher_id,
+                    )
+                )
+            )
+            links = await session.execute(
+                select(DisciplineTeacher.id).where(
+                    DisciplineTeacher.discipline_id == discipline.id
+                )
+            )
+            if links.first() is not None:
+                return
+
+        await super().delete(session=session, id=discipline.id)
 
     @classmethod
     async def find_for_student(cls, session: AsyncSession, student_id: int):

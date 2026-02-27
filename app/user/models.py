@@ -33,8 +33,7 @@ class Users(Base):
     assignments = relationship("Assignments", back_populates="user")
     submissions = relationship("Submissions", back_populates="user")
     group = relationship("Groups", back_populates="students")
-    disciplines = relationship("Discipline", secondary="discipline_teacher", back_populates="teachers")
+    disciplines = relationship("Disciplines", secondary="discipline_teacher", back_populates="teachers")
 
     def __repr__(self):
         return f"<User {self.email}>"
-

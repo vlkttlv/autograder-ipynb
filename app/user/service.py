@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.service.base import BaseDAO
 from app.user.models import Users
 from app.models import RefreshToken, Groups
-from app.discipline.models import Disciplines
+from app.discipline.models import DisciplineTeacher, Disciplines
 from app.db import async_session_maker
 
 
@@ -32,7 +32,9 @@ class UsersDAO(BaseDAO):
 
         if user.role == "TUTOR":
             q_disc = await session.execute(
-                select(Disciplines).where(Disciplines.teacher_id == user.id)
+                select(Disciplines)
+                .join(DisciplineTeacher, DisciplineTeacher.discipline_id == Disciplines.id)
+                .where(DisciplineTeacher.teacher_id == user.id)
             )
             disciplines = q_disc.scalars().all()
 
