@@ -5,7 +5,7 @@ from app.db import Base
 
 
 class Users(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
@@ -13,7 +13,7 @@ class Users(Base):
         String(255), nullable=True
     )
     group_id: Mapped[int | None] = mapped_column(
-        ForeignKey("groups.id"), nullable=True
+        ForeignKey("group.id"), nullable=True
     )
 
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -29,13 +29,11 @@ class Users(Base):
     )
 
     # Relations
-    refresh_tokens = relationship(
-        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
-    )
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     assignments = relationship("Assignments", back_populates="user")
     submissions = relationship("Submissions", back_populates="user")
     group = relationship("Groups", back_populates="students")
-    disciplines = relationship("Disciplines", back_populates="teacher")
+    disciplines = relationship("Discipline", secondary="discipline_teacher", back_populates="teachers")
 
     def __repr__(self):
         return f"<User {self.email}>"

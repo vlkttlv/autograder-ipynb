@@ -14,28 +14,29 @@ from app.db import Base
 
 
 class Assignments(Base):
-    __tablename__ = "assignments"
+    __tablename__ = "assignment"
 
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True
     )
-    name: Mapped[str] = mapped_column(String)
-    start_date: Mapped[date] = mapped_column(Date)
-    start_time: Mapped[time] = mapped_column(Time)
-    due_date: Mapped[date] = mapped_column(Date)
-    due_time: Mapped[time] = mapped_column(Time)
-    number_of_attempts: Mapped[int]
-    grade: Mapped[int]
-    created_at: Mapped[datetime] = mapped_column(DateTime)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False)
+    due_time: Mapped[time] = mapped_column(Time, nullable=False)
+    number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    grade: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     discipline_id: Mapped[int] = mapped_column(
-        ForeignKey("disciplines.id"), nullable=False
+        ForeignKey("discipline.id"), nullable=False
     )
 
     # Связи с другими таблицами
     user = relationship("Users", back_populates="assignments")
     discipline = relationship("Disciplines")
-    submission = relationship("Submissions", back_populates="assignment")
+    submissions = relationship("Submissions", back_populates="assignment")
     assignment_files = relationship(
         "AssignmentFile",
         back_populates="assignment",
@@ -44,12 +45,12 @@ class Assignments(Base):
 
 
 class AssignmentFile(Base):
-    __tablename__ = "assignment_files"
+    __tablename__ = "assignment_file"
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
-    assignment_id: Mapped[UUID] = mapped_column(ForeignKey("assignments.id"))
+    assignment_id: Mapped[UUID] = mapped_column(ForeignKey("assignment.id"))
     file_type: Mapped[str] = mapped_column(String)  # original / modified
     file_id: Mapped[str] = mapped_column(String)  # путь в Dropbox
     file_link: Mapped[str] = mapped_column(

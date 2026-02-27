@@ -1,17 +1,25 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from app.db import Base
 
 
 class Disciplines(Base):
-    __tablename__ = "disciplines"
-    __table_args__ = (
-        UniqueConstraint("teacher_id", "name", name="uq_teacher_discipline"),
-    )
+    __tablename__ = "discipline"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    teacher_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    teacher_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
-    teacher = relationship("Users", back_populates="disciplines")
-    assignments = relationship("Assignments", back_populates="discipline")
+    teachers = relationship(
+        "User",
+        secondary="discipline_teacher",
+        back_populates="disciplines"
+    )
+
+class DisciplineTeacher(Base):
+    __tablename__ = "discipline_teacher"
+    __table_args__ = (UniqueConstraint("discipline_id", "teacher_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    discipline_id: Mapped[int] = mapped_column(Integer, ForeignKey("discipline.id"), nullable=False)
+    teacher_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)

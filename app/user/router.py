@@ -161,6 +161,7 @@ async def refresh_token(
 @router.get(
     "/me",
     summary="Returns the info about user",
+    dependencies=[Depends(refresh_token)]
 )
 async def get_user(current_user: Users = Depends(get_current_user),
                    session: AsyncSession = Depends(get_db_session)):
