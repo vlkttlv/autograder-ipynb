@@ -27,6 +27,7 @@ class AssignmentManagerService:
         discipline_id: int,
         name: str,
         number_of_attempts: int,
+        execution_timeout_seconds: int,
         start_date: date,
         start_time: time,
         due_date: date,
@@ -55,6 +56,7 @@ class AssignmentManagerService:
             due_date=due_date,
             due_time=due_time,
             number_of_attempts=number_of_attempts,
+            execution_timeout_seconds=execution_timeout_seconds,
             grade=grade,
             user_id=user_id,
         )

@@ -25,6 +25,7 @@ class Assignments(Base):
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
     due_time: Mapped[time] = mapped_column(Time, nullable=False)
     number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    execution_timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     grade: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 

@@ -26,6 +26,7 @@
       <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
       <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
       <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
+      <p><strong>Лимит времени проверки:</strong> {{ assignment.execution_timeout_seconds }} сек.</p>
       <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
       <p><a href="/assignments/{{ assignment.id }}/file/original" class="file-link">Скачать оригинальное задание</a></p>
       <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать модифицированное задание</a></p>

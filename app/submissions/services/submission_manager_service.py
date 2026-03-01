@@ -1,26 +1,20 @@
 import logging
 import nbformat
-import os
-import tempfile
-from contextlib import contextmanager
-from pathlib import Path
-
-from nbclient import NotebookClient
 from nbformat import read, NO_CONVERT
-from nbclient.exceptions import CellExecutionError
 from app.assignment.schemas import TypeOfAssignmentFile
-from app.assignment.services.dao_service import AssignmentFileDAO
+from app.assignment.services.dao_service import AssignmentDAO, AssignmentFileDAO
 from app.exceptions import (
+    AssignmentNotFoundException,
     DecodingIPYNBException,
     IncorrectFormatAssignmentException,
     SolutionNotFoundException,
-    SyntaxException,
 )
 from app.submissions.services.service import (
     SubmissionFilesDAO,
     SubmissionsDAO,
 )
 from app.submissions.services.notebook_service import NotebookService
+from app.submissions.services.sandbox_runner import SandboxNotebookRunner
 from app.dropbox.service import dropbox_service
 
 from app.logger import configure_logging
@@ -28,20 +22,6 @@ from app.logger import configure_logging
 logger = logging.getLogger(__name__)
 configure_logging()
 
-
-@contextmanager
-def prepared_assignment_workspace(resource_files: list[tuple[str, bytes]]):
-    """Создаёт временную рабочую директорию с файлами задания."""
-    old_cwd = os.getcwd()
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        for filename, content in resource_files:
-            target = Path(tmp_dir) / Path(filename).name
-            target.write_bytes(content)
-        os.chdir(tmp_dir)
-        try:
-            yield
-        finally:
-            os.chdir(old_cwd)
 
 
 class SubmissionManagerService:
@@ -53,14 +33,13 @@ class SubmissionManagerService:
         Обрабатывает блокнот, модифицирует его, загружает на Google dropbox
         и сохраняет задание в БД.
         """
-        await NotebookService.check_date_submission(session, assignment_id)
+        assignment = await NotebookService.check_date_submission(session, assignment_id)
 
         filename = submission_file.filename
         if not filename.lower().endswith(".ipynb"):
             raise IncorrectFormatAssignmentException
 
         notebook = read(submission_file.file, as_version=NO_CONVERT)
-        client = NotebookClient(notebook, kernel_name="autograder")
         
         assignment_resources = await AssignmentFileDAO.find_all(
             session=session,
@@ -75,14 +54,15 @@ class SubmissionManagerService:
             for resource in assignment_resources
         ]
 
-        try:
-            with prepared_assignment_workspace(resources):
-                client.execute()
-        except CellExecutionError as e:
-            if "AssertionError" not in str(e):
-                raise SyntaxException from e
-        except Exception as e:
-            raise SyntaxException from e
+        notebook_bytes = nbformat.writes(notebook).encode("utf-8")
+        notebook = nbformat.reads(
+            SandboxNotebookRunner.execute_notebook(
+                notebook_bytes,
+                resources,
+                timeout_seconds=assignment.execution_timeout_seconds,
+            ).decode("utf-8"),
+            as_version=4,
+        )
 
         # Проверяем наличие submission
         submission = await SubmissionsDAO.find_one_or_none(
@@ -156,9 +136,7 @@ class SubmissionManagerService:
         # Загружаем ipynb студента с dropbox
         file_content = dropbox_service.download_file(submission_file.file_id)
         try:
-            notebook = nbformat.reads(
-                file_content.decode("utf-8"), as_version=4
-            )
+            nbformat.reads(file_content.decode("utf-8"), as_version=4)
         except Exception as e:
             raise DecodingIPYNBException from e
 
@@ -166,13 +144,15 @@ class SubmissionManagerService:
         assignment_file = await AssignmentFileDAO.find_one_or_none(
             session=session, assignment_id=assignment_id, file_type=TypeOfAssignmentFile.ORIGINAL
         )
+        assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
+        if assignment is None:
+            raise AssignmentNotFoundException
+
         assignment_content = dropbox_service.download_file(
             assignment_file.file_id
         )
         try:
-            tutor_notebook = nbformat.reads(
-                assignment_content.decode("utf-8"), as_version=4
-            )
+            nbformat.reads(assignment_content.decode("utf-8"), as_version=4)
         except Exception as e:
             raise DecodingIPYNBException from e
         
@@ -189,12 +169,13 @@ class SubmissionManagerService:
             for resource in assignment_resources
         ]
 
-        # Проверяем
-        client = NotebookClient(notebook, kernel_name="autograder")
-        with prepared_assignment_workspace(resources):
-            total_points, feedback = NotebookService.grade_notebook(
-                client, notebook, tutor_notebook
-            )
+        # Проверяем в изолированном эфемерном контейнере
+        total_points, feedback = SandboxNotebookRunner.grade_notebook(
+            file_content,
+            assignment_content,
+            resources,
+            timeout_seconds=assignment.execution_timeout_seconds,
+        )
 
         # Обновляем результат
         await SubmissionsDAO.update(

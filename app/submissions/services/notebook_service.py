@@ -32,6 +32,8 @@ class NotebookService:
         ):
             raise DeadlineException
 
+        return assignment
+
     @staticmethod
     async def check_date_and_attempts_submission(session, assignment_id, current_user):
         now_datetime = datetime.now()
@@ -45,6 +47,8 @@ class NotebookService:
             or assignment.start_date > now_datetime.date()
         ):
             raise DeadlineException
+
+        return assignment
 
         submission_service = await SubmissionsDAO.find_one_or_none(
             session=session, user_id=current_user.id, assignment_id=assignment_id
