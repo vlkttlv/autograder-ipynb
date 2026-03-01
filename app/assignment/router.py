@@ -73,7 +73,7 @@ async def add_assignment(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
     number_of_attempts: int = Form(..., ge=1),
-    execution_timeout_seconds: int = Form(60, ge=5, le=600),
+    execution_timeout_seconds: int = Form(..., ge=1),
     discipline_id: int | None = Form(default=None),
     new_discipline_name: str | None = Form(default=None),
     start_date: date = Form(default=date.today()),
