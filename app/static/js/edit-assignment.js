@@ -27,6 +27,9 @@ document.getElementById('save-changes-btn').addEventListener('click', async func
   const number_of_attempts = getValueOrExclude(formData.get('number_of_attempts'));
   if (number_of_attempts !== undefined) updatedAssignment.number_of_attempts = number_of_attempts;
 
+  const execution_timeout_seconds = getValueOrExclude(formData.get('execution_timeout_seconds'));
+  if (execution_timeout_seconds !== undefined) updatedAssignment.execution_timeout_seconds = execution_timeout_seconds;
+
   const newDiscipline = formData.get('new_discipline_name').trim();
   const selectedDiscipline = formData.get('discipline_id');
 

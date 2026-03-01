@@ -96,3 +96,13 @@ class EndedAttemptsException(AutograderException):
 class DecodingIPYNBException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Ошибка при декодировании файла .ipynb"
+
+
+class SandboxExecutionException(AutograderException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    detail = "Ошибка выполнения в изолированной среде"
+
+
+class ResourceLimitExceededException(AutograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Код превысил лимиты ресурсов или ядро завершилось аварийно"
