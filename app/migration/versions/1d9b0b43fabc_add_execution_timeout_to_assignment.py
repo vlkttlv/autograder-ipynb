@@ -26,7 +26,6 @@ def upgrade() -> None:
             "execution_timeout_seconds",
             sa.Integer(),
             nullable=False,
-            server_default="60",
         ),
     )
 
