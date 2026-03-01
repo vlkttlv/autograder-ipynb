@@ -15,14 +15,14 @@ from app.exceptions import (
 
 logger = logging.getLogger(__name__)
 
-SANDBOX_DOCKER_IMAGE = os.getenv("SANDBOX_DOCKER_IMAGE", "autograder-ipynb:latest")
-SANDBOX_CPU_LIMIT = os.getenv("SANDBOX_CPU_LIMIT", "1")
-SANDBOX_MEMORY_LIMIT = os.getenv("SANDBOX_MEMORY_LIMIT", "1g")
-SANDBOX_PIDS_LIMIT = os.getenv("SANDBOX_PIDS_LIMIT", "256")
+SANDBOX_DOCKER_IMAGE = "autograder-ipynb:latest"
+SANDBOX_CPU_LIMIT = "1"
+SANDBOX_MEMORY_LIMIT = "1g"
+SANDBOX_PIDS_LIMIT = "256"
 
 
 def _docker_mount_source(workspace: Path) -> str:
-    """Convert host path for Docker bind mount, including Windows hosts."""
+    """Преобразование пути хоста для привязки Docker, включая хосты Windows"""
     resolved = str(workspace.resolve())
     if re.match(r"^[A-Za-z]:\\", resolved):
         drive = resolved[0].lower()
@@ -32,7 +32,7 @@ def _docker_mount_source(workspace: Path) -> str:
 
 
 def _write_resources(workspace: Path, resources: Iterable[tuple[str, bytes]]):
-    """Write assignment resource files preserving relative subdirectories."""
+    """Создает файлы задания, сохраняя относительные подкаталоги"""
     for filename, content in resources:
         resource_path = Path(filename)
         if resource_path.is_absolute() or ".." in resource_path.parts:
@@ -80,10 +80,10 @@ def _run_in_container(command: list[str], workspace: Path, timeout_seconds: int)
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        logger.error("Sandbox docker run failed with code %s. stderr: %s", e.returncode, e.stderr)
+        logger.error("Заупск Sandbox docker завершился ошибкой с кодом %s. stderr: %s", e.returncode, e.stderr)
         raise SandboxExecutionException from e
     except (subprocess.SubprocessError, FileNotFoundError) as e:
-        logger.error("Sandbox execution error: %s", e)
+        logger.error("Ошибка выполнения в песочнице: %s", e)
         raise SandboxExecutionException from e
 
 
@@ -113,6 +113,7 @@ class SandboxNotebookRunner:
                 "nbformat.write(nb, '/workspace/submission.ipynb')\n"
             )
             try:
+                logger.info("Началась проверка блокнота")
                 _run_in_container(["python", "-c", script], workspace, timeout_seconds)
             except SandboxExecutionException as e:
                 cause = e.__cause__
@@ -174,6 +175,7 @@ class SandboxNotebookRunner:
                 "print(json.dumps({'total_points': total_points, 'feedback': feedback}))\n"
             )
             try:
+                logger.info("Началась оценка блокнота")
                 result = _run_in_container(["python", "-c", script], workspace, timeout_seconds)
             except SandboxExecutionException as e:
                 cause = e.__cause__
