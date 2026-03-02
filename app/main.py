@@ -1,6 +1,7 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 
@@ -14,6 +15,7 @@ from app.admin.views import (
     DisciplinesAdmin,
     SubmissionFilesAdmin,
 )
+from app.exceptions import IncorrectRoleException, IncorrectTokenFormatException, TokenAbsentException, TokenExpiredException, UserIsNotPresentException
 from app.user.router import router as user_router
 from app.user.google_router import router as google_router
 from app.assignment.router import router as assignment_router
@@ -30,6 +32,22 @@ app = FastAPI()
 
 configure_logging()
 setup_fastapi_exception_logging(app)
+
+async def _auth_exception_handler(request: Request, exc: Exception):
+    if request.url.path.startswith("/pages"):
+        return RedirectResponse(url="/pages/auth/login")
+    status_code = getattr(exc, "status_code", 401)
+    detail = getattr(exc, "detail", "Unauthorized")
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+for _exc in (
+    TokenAbsentException,
+    IncorrectTokenFormatException,
+    TokenExpiredException,
+    UserIsNotPresentException,
+    IncorrectRoleException,
+):
+    app.add_exception_handler(_exc, _auth_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,

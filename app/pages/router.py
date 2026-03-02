@@ -22,7 +22,7 @@ from app.submissions.services.service import (
     SubmissionsDAO,
 )
 from app.user.models import Users
-from app.db import async_session_maker, get_db_session
+from app.db import get_db_session
 from app.user.service import UsersDAO
 logger = logging.getLogger("frontend")
 configure_logging()

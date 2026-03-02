@@ -25,7 +25,6 @@ def upgrade() -> None:
         sa.Column(
             "execution_timeout_seconds",
             sa.Integer(),
-            nullable=False,
         ),
     )
 

@@ -27,9 +27,7 @@ def get_token_page(request: Request):
     """Получение текущего токена из кук"""
     token = request.cookies.get("access_token")
     if not token:
-        return RedirectResponse(
-            url="/pages/auth/login",
-        )
+        raise TokenAbsentException
     return token
 
 
@@ -40,21 +38,18 @@ async def get_refresh_token_page(session: AsyncSession = Depends(get_db_session)
             token, options={"verify_signature": False, "verify_exp": False}
         )
     except Exception as e:
-        # неверный формат токена
-        return RedirectResponse(url="/pages/auth/login")
+        raise IncorrectTokenFormatException from e
 
     user_id: str = payload.get("sub")
     if not user_id:
-        return RedirectResponse(url="/pages/auth/login")
+        raise UserIsNotPresentException
 
     refresh_user = await TokenService.find_one_or_none(session=session, user_id=int(user_id))
     if (
         not refresh_user
         or datetime.utcnow().timestamp() > refresh_user.expires_at.timestamp()
     ):
-        # просрочен или не найден — редирект на логин
-        return RedirectResponse(url="/pages/auth/login")
-
+        raise TokenExpiredException
     return refresh_user.token
 
 
@@ -63,43 +58,38 @@ async def get_current_user_page(token: str = Depends(get_token_page)):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
     except Exception as e:
-        # некорректный формат токена
-        return RedirectResponse(url="/pages/auth/login")
+        raise IncorrectTokenFormatException from e
+    
     expire: str = payload.get("exp")
     if (not expire) or (int(expire) < datetime.utcnow().timestamp()):
-        # срок действия токена истек
-        return RedirectResponse(url="/pages/auth/login")
+        raise TokenExpiredException
     user_id: str = payload.get("sub")
     if not user_id:
-        # пользователя не существует
-        # raise UserIsNotPresentException
-        return RedirectResponse(url="/pages/auth/login")
+        raise UserIsNotPresentException
     async with async_session_maker() as session:
         async with session.begin():
             user = await UsersDAO.find_one_or_none(session=session, id=int(user_id))
             if not user:
-                # raise UserIsNotPresentException
-                return RedirectResponse(url="/pages/auth/login")
+                raise UserIsNotPresentException
             return user
 
 
 async def get_role_page(current_user=Depends(get_current_user_page)):
-    if current_user is not Users:
+    if not isinstance(current_user, Users):
         return RedirectResponse(url="/pages/auth/login")
     return current_user.role
 
 
 async def check_tutor_role_page(current_role=Depends(get_role_page)):
-    if current_role == "STUDENT":
-        return RedirectResponse(url="/pages/auth/login")
-    return None
+    if current_role != "TUTOR":
+        raise IncorrectRoleException
+    return current_role
 
 
 async def check_student_role_page(current_role=Depends(get_role_page)):
-    if current_role == "TUTOR":
-        return RedirectResponse(url="/pages/auth/login")
-    return None
-
+    if current_role != "STUDENT":
+        raise IncorrectRoleException
+    return current_role
 
 async def refresh_token_page(
     response: Response, refresh: str = Depends(get_refresh_token_page)
@@ -110,11 +100,9 @@ async def refresh_token_page(
         user_id: str = payload.get("sub")
         role = payload.get("role")
         if user_id is None:
-            # raise IncorrectTokenFormatException
-            return RedirectResponse(url="/pages/auth/login")
+            raise IncorrectTokenFormatException
     except Exception as e:
-        # raise IncorrectTokenFormatException from e
-        return RedirectResponse(url="/pages/auth/login")
+        raise IncorrectTokenFormatException from e
     new_access_token = create_access_token({"sub": user_id, "role": role})
     response.set_cookie("access_token", new_access_token, httponly=True)
     logger.info(f"Токен был обновлен для юзера: {user_id} {role}")
