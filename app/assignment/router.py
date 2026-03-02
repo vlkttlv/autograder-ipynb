@@ -126,6 +126,7 @@ async def add_assignment(
         due_date=due_date,
         due_time=due_time,
         user_id=current_user.id,
+        created_at = datetime.now()
     )
 
     resource_payload = []

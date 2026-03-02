@@ -33,6 +33,7 @@ class AssignmentManagerService:
         due_date: date,
         due_time: time,
         user_id,
+        created_at
     ):
         """
         Обрабатывает блокнот и создает задание в БД (без загрузки на dropbox).
@@ -59,6 +60,7 @@ class AssignmentManagerService:
             execution_timeout_seconds=execution_timeout_seconds,
             grade=grade,
             user_id=user_id,
+            created_at=created_at
         )
         logger.info(
             f"Задание {str(assignment)} создано, загрузка файлов запущена в фоне"
