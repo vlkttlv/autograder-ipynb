@@ -48,18 +48,13 @@ class NotebookService:
         ):
             raise DeadlineException
 
-        return assignment
-
         submission_service = await SubmissionsDAO.find_one_or_none(
             session=session, user_id=current_user.id, assignment_id=assignment_id
         )
         if not submission_service:
             raise SolutionNotFoundException
 
-        if (
-            submission_service.number_of_attempts
-            == assignment.number_of_attempts
-        ):
+        if submission_service.number_of_attempts == assignment.number_of_attempts:
             raise EndedAttemptsException
 
         return submission_service

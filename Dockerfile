@@ -15,7 +15,11 @@ RUN pip install --no-cache-dir \
     matplotlib \
     seaborn \
     scipy
-    
+
 RUN python -m ipykernel install --name=autograder-env --display-name "Autograder Environment"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends docker.io \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .

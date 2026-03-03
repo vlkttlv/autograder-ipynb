@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
 import re
 import subprocess
 import tempfile
@@ -19,7 +20,11 @@ SANDBOX_DOCKER_IMAGE = "autograder-ipynb:latest"
 SANDBOX_CPU_LIMIT = "1"
 SANDBOX_MEMORY_LIMIT = "1g"
 SANDBOX_PIDS_LIMIT = "256"
+SANDBOX_VOLUMES_FROM = os.getenv("SANDBOX_VOLUMES_FROM", "autograder_app")
 
+
+def _is_running_in_docker() -> bool:
+    return Path("/.dockerenv").exists()
 
 def _docker_mount_source(workspace: Path) -> str:
     """Преобразование пути хоста для привязки Docker, включая хосты Windows"""
@@ -30,6 +35,54 @@ def _docker_mount_source(workspace: Path) -> str:
         return f"/host_mnt/{drive}{tail}"
     return resolved
 
+
+
+def _workspace_root() -> Path | None:
+    if _is_running_in_docker():
+        root = Path('/app/.sandbox')
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+    return None
+
+
+@contextmanager
+def _workspace_context():
+    root = _workspace_root()
+    with tempfile.TemporaryDirectory(dir=root) as tmp_dir:
+        yield Path(tmp_dir)
+
+
+def _build_docker_run_command(command: list[str], workspace: Path) -> list[str]:
+    docker_command = [
+        'docker',
+        'run',
+        '--rm',
+        '--network',
+        'none',
+        '--cpus',
+        SANDBOX_CPU_LIMIT,
+        '--memory',
+        SANDBOX_MEMORY_LIMIT,
+        '--pids-limit',
+        str(SANDBOX_PIDS_LIMIT),
+        '--cap-drop',
+        'ALL',
+        '--security-opt',
+        'no-new-privileges',
+    ]
+
+    if _is_running_in_docker():
+        docker_command.extend(['--volumes-from', SANDBOX_VOLUMES_FROM, '-w', str(workspace)])
+    else:
+        docker_command.extend([
+            '--mount',
+            f'type=bind,source={_docker_mount_source(workspace)},target=/workspace',
+            '-w',
+            '/workspace',
+        ])
+
+    docker_command.extend([SANDBOX_DOCKER_IMAGE, *command])
+    return docker_command
 
 def _write_resources(workspace: Path, resources: Iterable[tuple[str, bytes]]):
     """Создает файлы задания, сохраняя относительные подкаталоги"""
@@ -47,29 +100,7 @@ def _write_resources(workspace: Path, resources: Iterable[tuple[str, bytes]]):
 
 
 def _run_in_container(command: list[str], workspace: Path, timeout_seconds: int):
-    docker_command = [
-        "docker",
-        "run",
-        "--rm",
-        "--network",
-        "none",
-        "--cpus",
-        SANDBOX_CPU_LIMIT,
-        "--memory",
-        SANDBOX_MEMORY_LIMIT,
-        "--pids-limit",
-        str(SANDBOX_PIDS_LIMIT),
-        "--cap-drop",
-        "ALL",
-        "--security-opt",
-        "no-new-privileges",
-        "--mount",
-        f"type=bind,source={_docker_mount_source(workspace)},target=/workspace",
-        "-w",
-        "/workspace",
-        SANDBOX_DOCKER_IMAGE,
-        *command,
-    ]
+    docker_command = _build_docker_run_command(command, workspace)
 
     try:
         return subprocess.run(
@@ -94,8 +125,7 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> bytes:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            workspace = Path(tmp_dir)
+        with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(notebook_content)
             _write_resources(workspace, resources)
 
@@ -103,14 +133,14 @@ class SandboxNotebookRunner:
                 "import nbformat\n"
                 "from nbclient import NotebookClient\n"
                 "from nbclient.exceptions import CellExecutionError\n"
-                "nb = nbformat.read('/workspace/submission.ipynb', as_version=4)\n"
+                "nb = nbformat.read('submission.ipynb', as_version=4)\n"
                 "client = NotebookClient(nb, kernel_name='python3')\n"
                 "try:\n"
                 "    client.execute()\n"
                 "except CellExecutionError as e:\n"
                 "    if 'AssertionError' not in str(e):\n"
                 "        raise\n"
-                "nbformat.write(nb, '/workspace/submission.ipynb')\n"
+                "nbformat.write(nb, 'submission.ipynb')\n"
             )
             try:
                 logger.info("Началась проверка блокнота")
@@ -136,8 +166,7 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> tuple[int, list[int]]:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            workspace = Path(tmp_dir)
+        with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(submission_content)
             (workspace / "tutor.ipynb").write_bytes(tutor_content)
             _write_resources(workspace, resources)
@@ -148,8 +177,8 @@ class SandboxNotebookRunner:
                 "import nbformat\n"
                 "from nbclient import NotebookClient\n"
                 "from nbclient.exceptions import CellExecutionError\n"
-                "submission = nbformat.read('/workspace/submission.ipynb', as_version=4)\n"
-                "tutor = nbformat.read('/workspace/tutor.ipynb', as_version=4)\n"
+                "submission = nbformat.read('submission.ipynb', as_version=4)\n"
+                "tutor = nbformat.read('tutor.ipynb', as_version=4)\n"
                 "client = NotebookClient(submission, kernel_name='python3')\n"
                 "total_points = 0\n"
                 "feedback = []\n"
