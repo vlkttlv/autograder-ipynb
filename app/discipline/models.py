@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, Index
 from app.db import Base
 
 
@@ -18,6 +18,11 @@ class Disciplines(Base):
 class DisciplineTeacher(Base):
     __tablename__ = "discipline_teacher"
     __table_args__ = (UniqueConstraint("discipline_id", "teacher_id"),)
+    __table_args__ = (
+        UniqueConstraint("discipline_id", "teacher_id"),
+        Index("ix_discipline_teacher_teacher_id", "teacher_id"),
+        Index("ix_discipline_teacher_discipline_id", "discipline_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     discipline_id: Mapped[int] = mapped_column(Integer, ForeignKey("discipline.id"), nullable=False)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, LargeBinary, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
@@ -8,6 +8,11 @@ from app.db import Base
 
 class Submissions(Base):
     __tablename__ = "submission"
+    __table_args__ = (
+        Index("ix_submission_user_id", "user_id"),
+        Index("ix_submission_assignment_id", "assignment_id"),
+        Index("ix_submission_user_id_assignment_id", "user_id", "assignment_id"),
+    )
 
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True
@@ -31,6 +36,10 @@ class Submissions(Base):
 
 class SubmissionFiles(Base):
     __tablename__ = "submission_file"
+    __table_args__ = (
+        Index("ix_submission_file_submission_id", "submission_id"),
+        Index("ix_submission_file_assignment_id", "assignment_id"),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True

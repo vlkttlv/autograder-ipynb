@@ -1,10 +1,14 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, String, DateTime
+from sqlalchemy import ForeignKey, String, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
+    __table_args__ = (
+        Index("ix_refresh_token_user_id", "user_id"),
+        Index("ix_refresh_token_token", "token"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     token: Mapped[str] = mapped_column(String, nullable=False)

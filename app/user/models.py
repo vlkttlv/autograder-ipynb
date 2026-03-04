@@ -1,11 +1,13 @@
-from datetime import datetime
-from sqlalchemy import ForeignKey, String, DateTime
+from sqlalchemy import ForeignKey, String, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
 class Users(Base):
     __tablename__ = "user"
+    __table_args__ = (
+        Index("ix_user_group_id", "group_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Integer,
     String,
     Time,
+    Index
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -15,6 +16,10 @@ from app.db import Base
 
 class Assignments(Base):
     __tablename__ = "assignment"
+    __table_args__ = (
+        Index("ix_assignment_user_id", "user_id"),
+        Index("ix_assignment_discipline_id", "discipline_id"),
+    )
 
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True
@@ -47,6 +52,14 @@ class Assignments(Base):
 
 class AssignmentFile(Base):
     __tablename__ = "assignment_file"
+    __table_args__ = (
+        Index("ix_assignment_file_assignment_id", "assignment_id"),
+        Index(
+            "ix_assignment_file_assignment_id_file_type",
+            "assignment_id",
+            "file_type",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
