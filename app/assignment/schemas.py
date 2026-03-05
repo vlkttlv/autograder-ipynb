@@ -13,7 +13,7 @@ class AssignmentBaseSchema(BaseModel):
     due_date: date = None
     due_time: time = None
     number_of_attempts: int = Field(None, ge=1)
-    execution_timeout_seconds: int = Field(None, ge=1)
+    execution_timeout_seconds: int = Field(None, ge=1, le=1000)
 
 
 class AssignmentResponseSchema(AssignmentBaseSchema):
@@ -30,7 +30,7 @@ class AssignmentUpdateSchema(BaseModel):
     due_date: Optional[date] = None
     due_time: Optional[time] = None
     number_of_attempts: Optional[int] = Field(None, ge=1)
-    execution_timeout_seconds: Optional[int] = Field(None, ge=1)
+    execution_timeout_seconds: Optional[int] = Field(None, ge=1, le=1000)
     discipline_id: Optional[int] = None
     new_discipline_name: Optional[str] = None
 

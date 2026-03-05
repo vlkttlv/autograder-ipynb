@@ -12,6 +12,7 @@ from app.exceptions import (
     ResourceLimitExceededException,
     SandboxExecutionException,
     SyntaxException,
+    UnsafeNotebookCodeException,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,18 @@ SANDBOX_CPU_LIMIT = "1"
 SANDBOX_MEMORY_LIMIT = "1g"
 SANDBOX_PIDS_LIMIT = "256"
 SANDBOX_VOLUMES_FROM = os.getenv("SANDBOX_VOLUMES_FROM", "autograder_app")
+MALICIOUS_CELL_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"\brm\s+-rf\b", "rm_rf"),
+    (r"\bos\.remove\s*\(", "os_remove"),
+    (r"\bos\.rmdir\s*\(", "os_rmdir"),
+    (r"\bshutil\.rmtree\s*\(", "shutil_rmtree"),
+    (r"\bos\.system\s*\([^)]*\brm\s+-rf\b", "os_system_rm_rf"),
+    (r"\bsubprocess\.(?:run|call|Popen|check_call|check_output)\s*\([^)]*\brm\s+-rf\b", "subprocess_rm_rf"),
+    (r"\bDROP\s+TABLE\b", "sql_drop_table"),
+    (r"\bTRUNCATE\s+TABLE\b", "sql_truncate_table"),
+    (r"\bDELETE\s+FROM\b", "sql_delete_from"),
+    (r"\bALTER\s+TABLE\b", "sql_alter_table"),
+)
 
 
 def _is_running_in_docker() -> bool:
@@ -50,6 +63,35 @@ def _workspace_context():
     root = _workspace_root()
     with tempfile.TemporaryDirectory(dir=root) as tmp_dir:
         yield Path(tmp_dir)
+
+
+def _scan_notebook_for_malicious_code(notebook_content: bytes):
+    try:
+        import nbformat
+    except Exception:
+        return
+
+    try:
+        notebook = nbformat.reads(notebook_content.decode("utf-8"), as_version=4)
+    except Exception:
+        return
+
+    findings: list[tuple[int, str]] = []
+    for index, cell in enumerate(notebook.cells):
+        if cell.get("cell_type") != "code":
+            continue
+        source = cell.get("source", "")
+        for pattern, kind in MALICIOUS_CELL_PATTERNS:
+            if re.search(pattern, source, re.IGNORECASE | re.MULTILINE):
+                findings.append((index, kind))
+                break
+
+    if findings:
+        logger.warning(
+            "Rejected notebook due to potentially malicious code. Findings: %s",
+            findings,
+        )
+        raise UnsafeNotebookCodeException
 
 
 def _build_docker_run_command(command: list[str], workspace: Path) -> list[str]:
@@ -110,6 +152,13 @@ def _run_in_container(command: list[str], workspace: Path, timeout_seconds: int)
             timeout=timeout_seconds,
             check=True,
         )
+    except subprocess.TimeoutExpired as e:
+        logger.error(
+            "Sandbox execution timed out after %s seconds. cmd=%s",
+            timeout_seconds,
+            docker_command,
+        )
+        raise ResourceLimitExceededException from e
     except subprocess.CalledProcessError as e:
         logger.error("Заупск Sandbox docker завершился ошибкой с кодом %s. stderr: %s", e.returncode, e.stderr)
         raise SandboxExecutionException from e
@@ -125,6 +174,7 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> bytes:
+        _scan_notebook_for_malicious_code(notebook_content)
         with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(notebook_content)
             _write_resources(workspace, resources)
@@ -154,6 +204,8 @@ class SandboxNotebookRunner:
                     if cause.returncode == 1:
                         raise SyntaxException from e
                 raise
+            except ResourceLimitExceededException:
+                raise
             except Exception as e:
                 raise SyntaxException from e
 
@@ -166,6 +218,7 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> tuple[int, list[int]]:
+        _scan_notebook_for_malicious_code(submission_content)
         with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(submission_content)
             (workspace / "tutor.ipynb").write_bytes(tutor_content)

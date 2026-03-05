@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+﻿from fastapi import HTTPException, status
 
 
 class AutograderException(HTTPException):
@@ -106,3 +106,9 @@ class SandboxExecutionException(AutograderException):
 class ResourceLimitExceededException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Код превысил лимиты ресурсов или ядро завершилось аварийно"
+
+
+class UnsafeNotebookCodeException(AutograderException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Найден потенциально небезопасный код в блокноте"
+
