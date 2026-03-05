@@ -112,3 +112,13 @@ class UnsafeNotebookCodeException(AutograderException):
     status_code = status.HTTP_400_BAD_REQUEST
     detail = "Найден потенциально небезопасный код в блокноте"
 
+
+class EmbeddedEditorDisabledException(AutograderException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    detail = "Jupyter отключен"
+
+
+class NotebookEditorUnavailableException(AutograderException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    detail = "Jupyter временно недоступен"
+
