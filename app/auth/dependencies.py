@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, Request
 from app.db import async_session_maker
 # from jwt import PyJWKError
 from app.config import settings
@@ -53,10 +53,10 @@ async def get_refresh_token(token: str = Depends(get_token),
     # находим refresh токен для текущего пользователя
     refresh_user = await TokenService.find_one_or_none(session=session, user_id=int(user_id))
     if not refresh_user:
-        raise HTTPException(status_code=401)
+        raise TokenExpiredException
     # если refresh токен просрочен, то выбрасываем исключение
     if datetime.utcnow().timestamp() > refresh_user.expires_at.timestamp():
-        raise HTTPException(status_code=401)
+        raise TokenExpiredException
     refresh_token = refresh_user.token
     return refresh_token
 
