@@ -2,6 +2,13 @@ async function handleLogout(e) {
   e.preventDefault();
 
   try {
+    // Best-effort logout from JupyterHub to avoid stale Hub session
+    // when another user signs in from the same browser.
+    await fetch("/jhub/hub/logout", {
+      method: "GET",
+      credentials: "include",
+    });
+
     const response = await fetch("/auth/logout", {
       method: "POST",
       credentials: "include",

@@ -22,6 +22,7 @@ SANDBOX_CPU_LIMIT = "1"
 SANDBOX_MEMORY_LIMIT = "1g"
 SANDBOX_PIDS_LIMIT = "256"
 SANDBOX_VOLUMES_FROM = os.getenv("SANDBOX_VOLUMES_FROM", "autograder_app")
+SANDBOX_CONTAINER_USER = os.getenv("SANDBOX_CONTAINER_USER", "0:0")
 MALICIOUS_CELL_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\brm\s+-rf\b", "rm_rf"),
     (r"\bos\.remove\s*\(", "os_remove"),
@@ -60,12 +61,16 @@ def _workspace_root() -> Path | None:
 
 @contextmanager
 def _workspace_context():
+    # Каждый запуск получает отдельный временный workspace и не делит файлы
+    # с соседними проверками. После выхода директория удаляется.
     root = _workspace_root()
     with tempfile.TemporaryDirectory(dir=root) as tmp_dir:
         yield Path(tmp_dir)
 
 
 def _scan_notebook_for_malicious_code(notebook_content: bytes):
+    # Дополнительный pre-check до старта контейнера:
+    # блокируем очевидно опасные команды на уровне исходного кода ячеек.
     try:
         import nbformat
     except Exception:
@@ -95,10 +100,16 @@ def _scan_notebook_for_malicious_code(notebook_content: bytes):
 
 
 def _build_docker_run_command(command: list[str], workspace: Path) -> list[str]:
+    # Базовые ограничения sandbox-контейнера:
+    # - без сетевого доступа;
+    # - c лимитами CPU/RAM/PIDs;
+    # - без Linux capabilities и эскалации привилегий.
     docker_command = [
         'docker',
         'run',
         '--rm',
+        '--user',
+        SANDBOX_CONTAINER_USER,
         '--network',
         'none',
         '--cpus',
@@ -142,6 +153,8 @@ def _write_resources(workspace: Path, resources: Iterable[tuple[str, bytes]]):
 
 
 def _run_in_container(command: list[str], workspace: Path, timeout_seconds: int):
+    # Централизованный запуск и маппинг ошибок subprocess
+    # в доменные исключения приложения.
     docker_command = _build_docker_run_command(command, workspace)
 
     try:
@@ -174,6 +187,8 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> bytes:
+        # Выполняем все ячейки notebook в изоляции и возвращаем уже исполненный
+        # ipynb (с output'ами), который затем сохраняется как submission.
         _scan_notebook_for_malicious_code(notebook_content)
         with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(notebook_content)
@@ -218,6 +233,8 @@ class SandboxNotebookRunner:
         resources: list[tuple[str, bytes]],
         timeout_seconds: int,
     ) -> tuple[int, list[int]]:
+        # Оценка строится на подмене test-cell source:
+        # ячейка студента исполняется, затем тестовая часть берется из tutor.ipynb.
         _scan_notebook_for_malicious_code(submission_content)
         with _workspace_context() as workspace:
             (workspace / "submission.ipynb").write_bytes(submission_content)
