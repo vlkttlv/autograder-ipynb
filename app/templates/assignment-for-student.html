@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <title>{{ assignment.name or 'Задание' }}</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='css/assignment-for-student.css') }}">
   <script src="{{ url_for('static', path='js/script.js') }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/assignment-for-student.css') }}">
   <script src="{{ url_for('static', path='js/assignment-for-student.js') }}" defer></script>
 </head>
 <body class="body-base">
@@ -86,7 +86,7 @@
     </div>
 
     <div class="submit-assignment-container">
-      <p><strong>Или загрузите файл (классический режим):</strong></p>
+      <p><strong>Или загрузите файл с решением:</strong></p>
       <input type="file" id="submission-file" class="w-full p-2 border border-gray-300 rounded-md" accept=".ipynb">
       <div class="button-group">
         <button
