@@ -37,3 +37,7 @@ class SubmissionQueryParams:
         self.page = page
         self.limit = limit
         self.sort = sort
+
+
+class NotebookSaveRequest(BaseModel):
+    jupyter_token: str

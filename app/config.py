@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     DROPBOX_APP_KEY: str
     DROPBOX_APP_SECRET: str
 
+    ENABLE_EMBEDDED_NOTEBOOK_EDITOR: bool = False
+    JUPYTERHUB_ORIGIN: str = "http://jupyterhub:8000"
+    JUPYTERHUB_PUBLIC_BASE_URL: str = "/jhub"
+    JUPYTERHUB_PUBLIC_ORIGIN: str = ""
+    JUPYTERHUB_ADMIN_TOKEN: str | None = None
+    JUPYTERHUB_TOKEN_TTL_SECONDS: int = 300
+    JUPYTER_NOTEBOOK_FILENAME: str = "work.ipynb"
+    JUPYTER_NOTEBOOK_AUTOSAVE_SECONDS: int = 30
+
 
     @property
     def DATABASE_URL(self):

@@ -7,7 +7,7 @@ services:
     container_name: autograder_db
     restart: always
     env_file:
-      - .env-docker
+      - .env.docker
     ports:
       - "5432:5432"
     volumes:
@@ -15,18 +15,55 @@ services:
 
   backend:
     build: .
+    image: autograder-ipynb:latest
     container_name: autograder_app
+    user: "0:0"
     restart: always
-    ports:
-      - 8000:8000
+    expose:
+      - "8000"
     env_file:
-      - .env-docker
+      - .env.docker
     depends_on:
       - db
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000" 
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JUPYTERHUB_ORIGIN: http://jupyterhub:8000
+      JUPYTERHUB_PUBLIC_BASE_URL: /jhub
+
+  jupyterhub:
+    build:
+      context: .
+      dockerfile: jupyterhub/Dockerfile
+    container_name: autograder_jupyterhub
+    restart: always
+    env_file:
+      - .env.docker
+    environment:
+      DOCKER_NETWORK_NAME: autograder_default
+      JUPYTERHUB_PUBLIC_BASE_URL: /jhub
+    expose:
+      - "8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jupyterhub_data:/srv/jupyterhub/data
+    depends_on:
+      - backend
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: autograder_proxy
+    restart: always
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - jupyterhub
 
 volumes:
   pgdata:
+  jupyterhub_data:

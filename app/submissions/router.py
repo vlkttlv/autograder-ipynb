@@ -8,10 +8,12 @@ from app.exceptions import (
     SolutionNotFoundException,
 )
 from app.submissions.schemas import SubmissionQueryParams
+from app.submissions.schemas import NotebookSaveRequest
 from app.submissions.services.service import (
     SubmissionFilesDAO,
     SubmissionsDAO,
 )
+from app.submissions.services.embedded_notebook_service import EmbeddedNotebookService
 from app.submissions.services.notebook_service import NotebookService
 from app.submissions.services.submission_manager_service import (
     SubmissionManagerService,
@@ -20,6 +22,8 @@ from app.user.models import Users
 from app.logger import configure_logging
 from app.user.router import refresh_token
 from app.dropbox.service import dropbox_service
+from app.config import settings
+from app.exceptions import NotebookEditorUnavailableException
 
 logger = logging.getLogger(__name__)
 configure_logging()
@@ -27,6 +31,85 @@ configure_logging()
 
 router = APIRouter(prefix="/assignments", tags=["Submissions"])
 sub_router = APIRouter(prefix="/submissions", tags=["Submissions"])
+
+
+@router.post(
+    "/{assignment_id}/notebook/session",
+    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+)
+async def create_notebook_session(
+    assignment_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Создает сессию для работы студента с блокнотом Jupyter через интерфейс приложения"""
+    if not settings.ENABLE_EMBEDDED_NOTEBOOK_EDITOR:
+        return {"enabled": False, "message": "embedded editor disabled"}
+    try:
+        return await EmbeddedNotebookService.create_session(
+            session=session, assignment_id=assignment_id, current_user=current_user
+        )
+    except NotebookEditorUnavailableException:
+        return {"enabled": False, "message": "embedded editor unavailable"}
+
+
+@router.post(
+    "/{assignment_id}/notebook/save",
+    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+)
+async def save_notebook_draft(
+    assignment_id: str,
+    body: NotebookSaveRequest,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Сохраняем черновик блокнота"""
+    notebook_bytes = await EmbeddedNotebookService.save_draft(
+        session=session,
+        assignment_id=assignment_id,
+        current_user=current_user,
+        jupyter_token=body.jupyter_token,
+    )
+    return {"status": "ok", "size": len(notebook_bytes)}
+
+
+@router.post(
+    "/{assignment_id}/notebook/evaluate",
+    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+)
+async def evaluate_embedded_notebook(
+    assignment_id: str,
+    body: NotebookSaveRequest,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Оцениваем решение, написанное в JupyterHub"""
+    # Сначала получаем актуальную версию блокнота из Jupyter
+    # и сохраняем ее в серверной части системы
+    notebook_bytes = await EmbeddedNotebookService.save_draft(
+        session=session,
+        assignment_id=assignment_id,
+        current_user=current_user,
+        jupyter_token=body.jupyter_token,
+    )
+    # Передаем файл решения в подсистему проверки, 
+    # которая выполняет подготовку и загрузку решения в среду проверки
+    await SubmissionManagerService.process_and_upload_submission_bytes(
+        session=session,
+        assignment_id=assignment_id,
+        submission_bytes=notebook_bytes,
+        user_id=current_user.id,
+        user_email=current_user.email,
+    )
+    # Проверяем срок сдачи задания и доступное количество попыток отправки
+    submission_service = await NotebookService.check_date_and_attempts_submission(
+        session, assignment_id, current_user
+    )
+    # Запускаем автоматическую проверку решения в изолированной среде
+    total_points, feedback = await SubmissionManagerService.evaluate_submission(
+        session, assignment_id, current_user.email, submission_service
+    )
+    return {"message": "ok", "score": total_points, "feedback": feedback}
 
 
 @router.post(
@@ -61,6 +144,7 @@ async def evaluate_submission(
     session: AsyncSession = Depends(get_db_session)
 ):
     """Проверка решения"""
+
     submission_service = (
         await NotebookService.check_date_and_attempts_submission(
             session, assignment_id, current_user

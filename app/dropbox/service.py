@@ -1,5 +1,7 @@
-import dropbox
 import logging
+
+import dropbox
+
 from app.config import settings
 from app.logger import configure_logging
 
@@ -15,25 +17,19 @@ class DropboxService:
             app_secret=settings.DROPBOX_APP_SECRET,
         )
 
-    def upload_file(
-        self, file_content: bytes, filename: str, folder_type: str
-    ) -> dict:
-        """Загружает файл в Dropbox и возвращает путь и ссылку"""
+    def upload_file(self, file_content: bytes, filename: str, folder_type: str) -> dict:
+        """Upload file and return Dropbox path + direct link."""
         path = f"/{folder_type}/{filename}"
         try:
             self.dbx.files_upload(
                 file_content, path, mode=dropbox.files.WriteMode("overwrite")
             )
             try:
-                link = self.dbx.sharing_create_shared_link_with_settings(
-                    path
-                ).url
+                link = self.dbx.sharing_create_shared_link_with_settings(path).url
             except dropbox.exceptions.ApiError as e:
-                # Ссылка уже есть — достаем существующую
                 if (
                     isinstance(
-                        e.error,
-                        dropbox.sharing.CreateSharedLinkWithSettingsError,
+                        e.error, dropbox.sharing.CreateSharedLinkWithSettingsError
                     )
                     and e.error.is_shared_link_already_exists()
                 ):
@@ -49,21 +45,37 @@ class DropboxService:
             link = link.replace("?dl=0", "?dl=1")
             return {"path": path, "link": link}
         except Exception as e:
-            logger.error(f"Ошибка загрузки файла в Dropbox: {e}")
+            logger.error("Dropbox upload failed for %s: %s", path, e)
             raise
 
+    def upload_file_to_path(self, file_content: bytes, path: str) -> dict:
+        """Upload file to explicit Dropbox absolute path."""
+        if not path.startswith("/"):
+            raise ValueError("Dropbox path must start with '/'")
+        self.dbx.files_upload(
+            file_content,
+            path,
+            mode=dropbox.files.WriteMode("overwrite"),
+        )
+        return {"path": path}
+
+    def file_exists(self, path: str) -> bool:
+        try:
+            self.dbx.files_get_metadata(path)
+            return True
+        except dropbox.exceptions.ApiError:
+            return False
+
     def download_file(self, path: str) -> bytes:
-        """Скачивание файла"""
         _, res = self.dbx.files_download(path)
         return res.content
 
     def delete_file(self, path: str) -> None:
-        """Удаление файла"""
         try:
             self.dbx.files_delete_v2(path)
-            logger.info(f"Файл {path} удалён из Dropbox")
+            logger.info("Dropbox file deleted: %s", path)
         except Exception as e:
-            logger.error(f"Ошибка удаления файла {path}: {e}")
+            logger.error("Dropbox delete failed for %s: %s", path, e)
             raise
 
 

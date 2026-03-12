@@ -1,7 +1,8 @@
 __pycache__
 venv
 .env
-.env-docker
+.env.docker
 .pytest_cache
 .ruff_cache
 credentials
+app/logs/autograder.log
