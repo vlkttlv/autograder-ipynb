@@ -1,6 +1,15 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .body-base {
   background-color: #f7fafc;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
 }
 
 .nav-base {
@@ -10,6 +19,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Добавляем */
 }
 
 .nav-title {
@@ -48,11 +58,13 @@
 
 .main-container {
   max-width: 64rem;
-  margin: 2.5rem auto 0;
+  width: 100%; /* Добавляем */
+  margin: 2.5rem auto;
   padding: 1.5rem;
   background-color: #ffffff;
   border-radius: 0.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* Убираем flex: 1 0 auto */
 }
 
 .main-title {
@@ -144,4 +156,30 @@
 
 .back-tutorhome-button:hover {
   background-color: #15803d;
+}
+
+.sort-form {
+  margin: 1.5rem 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sort-form select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #d1d5db;
+}
+
+.footer {
+  flex-shrink: 0;
+  background-color: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+  width: 100%;
+  margin-top: auto; /* Важно! Прижимает футер к низу */
 }

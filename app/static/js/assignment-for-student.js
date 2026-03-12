@@ -11,6 +11,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const editorMessageBlock = document.getElementById("editor-message");
 
   let jupyterToken = null;
+  let isSubmitting = false;
+
+  function disableButton(button) {
+    if (!button) return;
+    button.disabled = true;
+    button.classList.add("opacity-50", "cursor-not-allowed");
+  }
+
+  function enableButton(button) {
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove("opacity-50", "cursor-not-allowed");
+  }
 
   async function resetJupyterHubSession() {
     try {
@@ -25,7 +38,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function showMessage(element, text, type = "success") {
     if (!element) return;
+
     element.textContent = text;
+
     if (type === "success") {
       element.className = "mt-2 text-green-600 text-sm";
     } else if (type === "warning") {
@@ -36,20 +51,28 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function uploadAndEvaluateFile() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+
     const assignmentId = submitButton.dataset.assignmentId;
     const fileInput = document.getElementById("submission-file");
     const file = fileInput.files[0];
 
     if (!file) {
       showMessage(uploadMessageBlock, "Пожалуйста, выберите файл для отправки.", "error");
+      isSubmitting = false;
       return;
     }
+
+    disableButton(submitButton);
+    disableButton(evaluateNotebookButton);
 
     const formData = new FormData();
     formData.append("submission_file", file);
 
     try {
       showMessage(uploadMessageBlock, "Отправка файла...", "success");
+
       const uploadResponse = await fetch(`/assignments/${assignmentId}/submissions`, {
         method: "POST",
         body: formData,
@@ -57,70 +80,122 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json();
+
         showMessage(
           uploadMessageBlock,
           "Ошибка при загрузке файла: " + (errorData.detail || "Не удалось загрузить файл"),
           "error"
         );
+
+        enableButton(submitButton);
+        enableButton(evaluateNotebookButton);
+        isSubmitting = false;
         return;
       }
 
       showMessage(uploadMessageBlock, "Файл загружен. Проверяем решение...", "success");
+
       const evaluateResponse = await fetch(`/assignments/${assignmentId}/submissions/evaluate`, {
         method: "POST",
       });
 
       if (!evaluateResponse.ok) {
         const errorData = await evaluateResponse.json();
+
         showMessage(
           uploadMessageBlock,
           "Ошибка при проверке: " + (errorData.detail || "Не удалось проверить решение"),
           "error"
         );
+
+        enableButton(submitButton);
+        enableButton(evaluateNotebookButton);
+        isSubmitting = false;
         return;
       }
 
       const data = await evaluateResponse.json();
-      showMessage(uploadMessageBlock, `Решение проверено. Ваши баллы: ${data.score}`, "success");
+
+      showMessage(
+        uploadMessageBlock,
+        `Решение проверено. Ваши баллы: ${data.score}`,
+        "success"
+      );
+
+      enableButton(submitButton);
+      enableButton(evaluateNotebookButton);
+
     } catch (error) {
       console.error("Ошибка при отправке задания:", error);
-      showMessage(uploadMessageBlock, "Произошла ошибка при отправке задания.", "error");
+
+      showMessage(
+        uploadMessageBlock,
+        "Произошла ошибка при отправке задания.",
+        "error"
+      );
+
+      enableButton(submitButton);
+      enableButton(evaluateNotebookButton);
+      isSubmitting = false;
     }
   }
 
   async function initEmbeddedEditor() {
     if (!editorSection) return;
+
     const assignmentId = editorSection.dataset.assignmentId;
+
     try {
       const response = await fetch(`/assignments/${assignmentId}/notebook/session`, {
         method: "POST",
       });
+
       if (!response.ok) {
-        showMessage(editorStatus, "Редактор недоступен. Используйте загрузку файла ниже.", "warning");
+        showMessage(
+          editorStatus,
+          "Редактор недоступен. Используйте загрузку файла ниже.",
+          "warning"
+        );
+
         if (saveNotebookButton) saveNotebookButton.disabled = true;
         if (evaluateNotebookButton) evaluateNotebookButton.disabled = true;
         return;
       }
 
       const data = await response.json();
+
       if (!data.enabled || !data.iframe_url) {
-        showMessage(editorStatus, "Редактор недоступен. Используйте загрузку файла ниже.", "warning");
+        showMessage(
+          editorStatus,
+          "Редактор недоступен. Используйте загрузку файла ниже.",
+          "warning"
+        );
+
         if (saveNotebookButton) saveNotebookButton.disabled = true;
         if (evaluateNotebookButton) evaluateNotebookButton.disabled = true;
         return;
       }
 
       await resetJupyterHubSession();
+
       notebookIframe.src = data.iframe_url;
       editorFrameContainer.style.display = "block";
+
       editorStatus.textContent = "Редактор готов.";
       editorStatus.className = "mt-2 text-sm text-green-700";
 
       const iframeUrl = new URL(data.iframe_url, window.location.origin);
       jupyterToken = iframeUrl.searchParams.get("token");
+
     } catch (error) {
       console.error("Не удалось инициализировать редактор:", error);
-      showMessage(editorStatus, "Редактор недоступен. Используйте загрузку файла ниже.", "warning");
+
+      showMessage(
+        editorStatus,
+        "Редактор недоступен. Используйте загрузку файла ниже.",
+        "warning"
+      );
+
       if (saveNotebookButton) saveNotebookButton.disabled = true;
       if (evaluateNotebookButton) evaluateNotebookButton.disabled = true;
     }
@@ -128,14 +203,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function saveEmbeddedNotebook() {
     if (!editorSection) return;
+
     const assignmentId = editorSection.dataset.assignmentId;
+
     if (!jupyterToken) {
-      showMessage(editorMessageBlock, "Токен редактора не найден. Обновите страницу.", "error");
+      showMessage(
+        editorMessageBlock,
+        "Токен редактора не найден. Обновите страницу.",
+        "error"
+      );
       return;
     }
 
     try {
       showMessage(editorMessageBlock, "Сохраняем черновик...", "success");
+
       const response = await fetch(`/assignments/${assignmentId}/notebook/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,6 +226,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!response.ok) {
         const errorData = await response.json();
+
         showMessage(
           editorMessageBlock,
           "Ошибка сохранения: " + (errorData.detail || "Не удалось сохранить"),
@@ -151,23 +234,44 @@ document.addEventListener("DOMContentLoaded", function () {
         );
         return;
       }
+
       showMessage(editorMessageBlock, "Черновик сохранен.", "success");
+
     } catch (error) {
       console.error("Ошибка сохранения черновика:", error);
+
       showMessage(editorMessageBlock, "Ошибка сохранения черновика.", "error");
     }
   }
 
   async function evaluateEmbeddedNotebook() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+
     if (!editorSection) return;
+
     const assignmentId = editorSection.dataset.assignmentId;
+
     if (!jupyterToken) {
-      showMessage(editorMessageBlock, "Токен редактора не найден. Обновите страницу.", "error");
+      showMessage(
+        editorMessageBlock,
+        "Токен редактора не найден. Обновите страницу.",
+        "error"
+      );
+      isSubmitting = false;
       return;
     }
 
+    disableButton(submitButton);
+    disableButton(evaluateNotebookButton);
+
     try {
-      showMessage(editorMessageBlock, "Сохраняем и отправляем на проверку...", "success");
+      showMessage(
+        editorMessageBlock,
+        "Сохраняем и отправляем на проверку...",
+        "success"
+      );
+
       const response = await fetch(`/assignments/${assignmentId}/notebook/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,32 +280,50 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!response.ok) {
         const errorData = await response.json();
+
         showMessage(
           editorMessageBlock,
           "Ошибка проверки: " + (errorData.detail || "Не удалось проверить решение"),
           "error"
         );
+
+        enableButton(submitButton);
+        enableButton(evaluateNotebookButton);
+        isSubmitting = false;
         return;
       }
 
       const data = await response.json();
+
       showMessage(
         editorMessageBlock,
         `Решение проверено. Ваши баллы: ${data.score}`,
         "success"
       );
+
     } catch (error) {
       console.error("Ошибка проверки решения:", error);
-      showMessage(editorMessageBlock, "Ошибка при проверке решения.", "error");
+
+      showMessage(
+        editorMessageBlock,
+        "Ошибка при проверке решения.",
+        "error"
+      );
+
+      enableButton(submitButton);
+      enableButton(evaluateNotebookButton);
+      isSubmitting = false;
     }
   }
 
   if (submitButton) {
     submitButton.addEventListener("click", uploadAndEvaluateFile);
   }
+
   if (saveNotebookButton) {
     saveNotebookButton.addEventListener("click", saveEmbeddedNotebook);
   }
+
   if (evaluateNotebookButton) {
     evaluateNotebookButton.addEventListener("click", evaluateEmbeddedNotebook);
   }
