@@ -94,6 +94,19 @@ async def logout_user(
     await TokenService.delete(session=session, user_id=current_user.id)
 
 
+@router.get("/jhub", summary="JupyterHub auth probe")
+async def jupyterhub_auth_probe(
+    response: Response,
+    current_user: Users = Depends(get_current_user),
+):
+    """Авторизация для JupyterHub через nginx auth_request.
+
+    Возвращает 200 и заголовок X-Remote-User с email пользователя.
+    """
+    response.headers["X-Remote-User"] = current_user.email.strip().lower()
+    return {"ok": True}
+
+
 @router.post("/test", summary="Creates the test users")
 async def create_test_users(session: AsyncSession = Depends(get_db_session)):
     """Создание тестовых пользователей"""
