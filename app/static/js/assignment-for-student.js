@@ -20,9 +20,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!button) return;
 
       button.disabled = disabled;
-      button.classList.toggle('opacity-50', disabled);
-      button.classList.toggle('cursor-not-allowed', disabled);
-      button.classList.toggle('pointer-events-none', disabled);
+      button.classList.toggle("opacity-50", disabled);
+      button.classList.toggle("cursor-not-allowed", disabled);
+      button.classList.toggle("pointer-events-none", disabled);
     });
   }
 
@@ -49,6 +49,11 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       element.className = "mt-2 text-red-600 text-sm";
     }
+  }
+
+  function disableEmbeddedEditorActions() {
+    if (saveNotebookButton) saveNotebookButton.disabled = true;
+    if (evaluateNotebookButton) evaluateNotebookButton.disabled = true;
   }
 
   async function uploadAndEvaluateFile() {
@@ -115,7 +120,6 @@ document.addEventListener("DOMContentLoaded", function () {
         `Решение проверено. Ваши баллы: ${data.score}`,
         "success"
       );
-
     } catch (error) {
       console.error("Ошибка при отправке задания:", error);
 
@@ -124,7 +128,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "Произошла ошибка при отправке задания.",
         "error"
       );
-
     } finally {
       setSubmittingState(false);
       isSubmitting = false;
@@ -137,6 +140,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const assignmentId = editorSection.dataset.assignmentId;
 
     try {
+      await resetJupyterHubSession();
+
       const response = await fetch(`/assignments/${assignmentId}/notebook/session`, {
         method: "POST",
       });
@@ -147,11 +152,73 @@ document.addEventListener("DOMContentLoaded", function () {
           "Редактор недоступен. Используйте загрузку файла ниже.",
           "warning"
         );
-
-        if (saveNotebookButton) saveNotebookButton.disabled = true;
-        if (evaluateNotebookButton) evaluateNotebookButton.disabled = true;
+        disableEmbeddedEditorActions();
         return;
       }
+
+      const data = await response.json();
+      if (!data.enabled || !data.iframe_url) {
+        showMessage(
+          editorStatus,
+          "Редактор недоступен. Используйте загрузку файла ниже.",
+          "warning"
+        );
+        disableEmbeddedEditorActions();
+        return;
+      }
+
+      notebookIframe.src = data.iframe_url;
+      editorFrameContainer.style.display = "block";
+      showMessage(editorStatus, "Редактор готов к работе.", "success");
+
+      try {
+        const parsedIframeUrl = new URL(data.iframe_url);
+        jupyterToken = parsedIframeUrl.searchParams.get("token");
+      } catch {
+        jupyterToken = null;
+      }
+
+      if (!jupyterToken) {
+        showMessage(
+          editorMessageBlock,
+          "Не удалось получить токен Jupyter. Сохранение из редактора недоступно.",
+          "warning"
+        );
+        disableEmbeddedEditorActions();
+      }
+    } catch (error) {
+      console.error("Ошибка инициализации встроенного редактора:", error);
+      showMessage(
+        editorStatus,
+        "Ошибка инициализации редактора. Используйте загрузку файла ниже.",
+        "error"
+      );
+      disableEmbeddedEditorActions();
+    }
+  }
+
+  async function saveEmbeddedNotebook() {
+    if (!editorSection) return;
+
+    const assignmentId = editorSection.dataset.assignmentId;
+
+    if (!jupyterToken) {
+      showMessage(
+        editorMessageBlock,
+        "Токен редактора не найден. Обновите страницу.",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      showMessage(editorMessageBlock, "Сохраняем черновик...", "success");
+
+      const response = await fetch(`/assignments/${assignmentId}/notebook/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jupyter_token: jupyterToken }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -165,7 +232,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       showMessage(editorMessageBlock, "Черновик сохранен.", "success");
-
     } catch (error) {
       console.error("Ошибка сохранения черновика:", error);
 
@@ -228,7 +294,6 @@ document.addEventListener("DOMContentLoaded", function () {
         `Решение проверено. Ваши баллы: ${data.score}`,
         "success"
       );
-
     } catch (error) {
       console.error("Ошибка проверки решения:", error);
 
@@ -237,7 +302,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "Ошибка при проверке решения.",
         "error"
       );
-
     } finally {
       setSubmittingState(false);
       isSubmitting = false;
