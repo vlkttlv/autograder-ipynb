@@ -4,6 +4,7 @@ import httpx
 import asyncio
 import logging
 from typing import Any
+from pathlib import PurePosixPath
 from urllib.parse import quote
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -188,6 +189,46 @@ class JupyterHubClient:
                 response.text,
             )
             raise NotebookEditorUnavailableException
+    
+    async def put_file(
+        self,
+        username: str,
+        server_name: str,
+        file_path: str,
+        file_bytes: bytes,
+        user_token: str,
+    ):
+        """Записывает файл на пользовательский сервер через Contents API"""
+        await self._ensure_parent_directories(
+            username, server_name, file_path, user_token
+        )
+        user_server_base = self._user_server_base_url(
+            self.origin, self.public_base, username, server_name
+        )
+        contents_url = (
+            f"{user_server_base}/api/contents/{quote(file_path, safe='/')}"
+        )
+        headers = {"Authorization": f"token {user_token}"}
+        text_content = file_bytes.decode("utf-8", errors="replace")
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.put(
+                    contents_url,
+                    headers=headers,
+                    json={"type": "file", "format": "text", "content": text_content},
+                )
+        except httpx.HTTPError as e:
+            raise NotebookEditorUnavailableException from e
+
+        if response.status_code not in (200, 201):
+            logger.error(
+                "Ошибка сохранения файла в Jupyter: %s, body=%s",
+                response.status_code,
+                response.text,
+            )
+            raise NotebookEditorUnavailableException
+        
 
     async def _ensure_parent_directories(
         self, username: str, server_name: str, notebook_path: str, user_token: str
@@ -302,6 +343,42 @@ class EmbeddedNotebookService:
         """Путь черновика блокнота в Dropbox"""
         return f"/drafts/{assignment_id}/{user_id}/{settings.JUPYTER_NOTEBOOK_FILENAME}"
 
+    @staticmethod
+    def _resource_file_name(assignment_id: str, dropbox_path: str) -> str:
+        """Возвращает имя ресурса, убирая служебный префикс, добавленный при загрузке."""
+        name = PurePosixPath(dropbox_path).name
+        prefix = re.compile(rf"^{re.escape(assignment_id)}_resource_\d+_")
+        return prefix.sub("", name, count=1) or name
+
+    @classmethod
+    async def _sync_resource_files(
+        cls,
+        session: AsyncSession,
+        assignment_id: str,
+        username: str,
+        server_name: str,
+        user_token: str,
+        client: JupyterHubClient,
+    ):
+        """Копирует дополнительные файлы задания в папку Jupyter рядом с notebook."""
+        resources = await AssignmentFileDAO.find_all(
+            session=session,
+            assignment_id=assignment_id,
+            file_type=TypeOfAssignmentFile.RESOURCE,
+        )
+        base_dir = f"assignments/{assignment_id}"
+        for resource in resources:
+            resource_name = cls._resource_file_name(assignment_id, resource.file_id)
+            resource_bytes = dropbox_service.download_file(resource.file_id)
+            await client.put_file(
+                username=username,
+                server_name=server_name,
+                file_path=f"{base_dir}/{resource_name}",
+                file_bytes=resource_bytes,
+                user_token=user_token,
+            )
+
+
     @classmethod
     async def _seed_draft_if_needed(
         cls,
@@ -359,6 +436,14 @@ class EmbeddedNotebookService:
         user_token = await client.create_user_token(username)
         await client.put_notebook(
             username, server_name, notebook_path, notebook_bytes, user_token
+        )
+        await cls._sync_resource_files(
+            session=session,
+            assignment_id=assignment_id,
+            username=username,
+            server_name=server_name,
+            user_token=user_token,
+            client=client,
         )
         return {
             "enabled": True,
