@@ -13,18 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let jupyterToken = null;
   let isSubmitting = false;
 
-  function disableButton(button) {
-    if (!button) return;
-    button.disabled = true;
-    button.classList.add("opacity-50", "cursor-not-allowed");
-  }
-
-  function enableButton(button) {
-    if (!button) return;
-    button.disabled = false;
-    button.classList.remove("opacity-50", "cursor-not-allowed");
-  }
-
   async function resetJupyterHubSession() {
     try {
       await fetch("/jhub/hub/logout", {
@@ -64,8 +52,12 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    disableButton(submitButton);
-    disableButton(evaluateNotebookButton);
+      // Отключаем кнопку
+    submitButton.disabled = true;
+    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+    evaluateNotebookButton.disabled = true;
+    evaluateNotebookButton.classList.add('opacity-50', 'cursor-not-allowed');
 
     const formData = new FormData();
     formData.append("submission_file", file);
@@ -87,8 +79,12 @@ document.addEventListener("DOMContentLoaded", function () {
           "error"
         );
 
-        enableButton(submitButton);
-        enableButton(evaluateNotebookButton);
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        evaluateNotebookButton.disabled = false;
+        evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
         isSubmitting = false;
         return;
       }
@@ -108,8 +104,12 @@ document.addEventListener("DOMContentLoaded", function () {
           "error"
         );
 
-        enableButton(submitButton);
-        enableButton(evaluateNotebookButton);
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        evaluateNotebookButton.disabled = false;
+        evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
         isSubmitting = false;
         return;
       }
@@ -122,8 +122,11 @@ document.addEventListener("DOMContentLoaded", function () {
         "success"
       );
 
-      enableButton(submitButton);
-      enableButton(evaluateNotebookButton);
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        evaluateNotebookButton.disabled = false;
+        evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed');
 
     } catch (error) {
       console.error("Ошибка при отправке задания:", error);
@@ -134,8 +137,12 @@ document.addEventListener("DOMContentLoaded", function () {
         "error"
       );
 
-      enableButton(submitButton);
-      enableButton(evaluateNotebookButton);
+      submitButton.disabled = false;
+      submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+      evaluateNotebookButton.disabled = false;
+      evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
       isSubmitting = false;
     }
   }
@@ -262,8 +269,11 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    disableButton(submitButton);
-    disableButton(evaluateNotebookButton);
+    submitButton.disabled = true;
+    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+    evaluateNotebookButton.disabled = true;
+    evaluateNotebookButton.classList.add('opacity-50', 'cursor-not-allowed');
 
     try {
       showMessage(
@@ -287,8 +297,12 @@ document.addEventListener("DOMContentLoaded", function () {
           "error"
         );
 
-        enableButton(submitButton);
-        enableButton(evaluateNotebookButton);
+        submitButton.disabled = false;
+        submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        evaluateNotebookButton.disabled = false;
+        evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed'); 
+
         isSubmitting = false;
         return;
       }
@@ -310,8 +324,12 @@ document.addEventListener("DOMContentLoaded", function () {
         "error"
       );
 
-      enableButton(submitButton);
-      enableButton(evaluateNotebookButton);
+      submitButton.disabled = false;
+      submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+      evaluateNotebookButton.disabled = false;
+      evaluateNotebookButton.classList.remove('opacity-50', 'cursor-not-allowed');
+      
       isSubmitting = false;
     }
   }
