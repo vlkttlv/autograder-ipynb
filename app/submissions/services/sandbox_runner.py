@@ -21,6 +21,7 @@ SANDBOX_DOCKER_IMAGE = "autograder-ipynb:latest"
 SANDBOX_CPU_LIMIT = "1"
 SANDBOX_MEMORY_LIMIT = "1g"
 SANDBOX_PIDS_LIMIT = "256"
+SANDBOX_STARTUP_GRACE_SECONDS = int(os.getenv("SANDBOX_STARTUP_GRACE_SECONDS", "5"))
 SANDBOX_VOLUMES_FROM = os.getenv("SANDBOX_VOLUMES_FROM", "autograder_app")
 SANDBOX_CONTAINER_USER = os.getenv("SANDBOX_CONTAINER_USER", "0:0")
 MALICIOUS_CELL_PATTERNS: tuple[tuple[str, str], ...] = (
@@ -156,19 +157,24 @@ def _run_in_container(command: list[str], workspace: Path, timeout_seconds: int)
     # Централизованный запуск и маппинг ошибок subprocess
     # в доменные исключения приложения.
     docker_command = _build_docker_run_command(command, workspace)
-
+    effective_timeout = timeout_seconds + SANDBOX_STARTUP_GRACE_SECONDS
     try:
         return subprocess.run(
             docker_command,
             capture_output=True,
             text=True,
-            timeout=timeout_seconds,
+            timeout=effective_timeout,
             check=True,
         )
     except subprocess.TimeoutExpired as e:
         logger.error(
-            "Sandbox execution timed out after %s seconds. cmd=%s",
+            (
+                "Sandbox execution timed out after %s seconds "
+                "(requested=%s, startup_grace=%s). cmd=%s"
+            ),
+            effective_timeout,
             timeout_seconds,
+            SANDBOX_STARTUP_GRACE_SECONDS,
             docker_command,
         )
         raise ResourceLimitExceededException from e

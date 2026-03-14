@@ -169,7 +169,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       notebookIframe.src = data.iframe_url;
       editorFrameContainer.style.display = "block";
-      showMessage(editorStatus, "Редактор готов к работе.", "success");
 
       try {
         const parsedIframeUrl = new URL(data.iframe_url);

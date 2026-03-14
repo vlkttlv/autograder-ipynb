@@ -22,96 +22,96 @@
 
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
-    <div class="assignment-details">
-      <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
-      <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
-      <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
-      <p><strong>Лимит времени проверки:</strong> {{ assignment.execution_timeout_seconds }} сек.</p>
-      {% if submission %}
-      <p><strong>Затрачено попыток:</strong> {{ submission.number_of_attempts }}</p>
-      {% else %}
-      <p><strong>Затрачено попыток:</strong> 0</p>
-      {% endif %}
-      <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
-      {% if submission %}
-      <p><strong>Получено баллов:</strong> {{ submission.score }}</p>
-      <p><strong>Ячейки с ошибками:</strong>
-      {% if submission.feedback %}
-        {{ submission.feedback }}
-      {% else %}
-        Ошибок нет
-      {% endif %}
-      </p>
-      {% endif %}
+    <div class="assignment-layout">
+      <section class="assignment-sidebar">
+        <div class="assignment-details">
+          <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
+          <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
+          <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
+          <p><strong>Лимит времени проверки:</strong> {{ assignment.execution_timeout_seconds }} сек.</p>
+          {% if submission %}
+          <p><strong>Затрачено попыток:</strong> {{ submission.number_of_attempts }}</p>
+          {% else %}
+          <p><strong>Затрачено попыток:</strong> 0</p>
+          {% endif %}
+          <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
+          {% if submission %}
+          <p><strong>Получено баллов:</strong> {{ submission.score }}</p>
+          <p><strong>Ячейки с ошибками:</strong>
+          {% if submission.feedback %}
+            {{ submission.feedback }}
+          {% else %}
+            Ошибок нет
+          {% endif %}
+          </p>
+          {% endif %}
 
-      <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать задание</a></p>
-      {% if resources %}
-        <p><strong>Дополнительные файлы:</strong></p>
-        {% for resource in resources %}
-          <a href="/assignments/{{ assignment.id }}/resources/{{ resource.id }}" class="file-link">
-            {{resource.file_id.split('_resource_', 1)[-1].split('_', 1)[-1] }}
+          <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать задание</a></p>
+          {% if resources %}
+            <p><strong>Дополнительные файлы:</strong></p>
+            {% for resource in resources %}
+              <a href="/assignments/{{ assignment.id }}/resources/{{ resource.id }}" class="file-link">
+                {{resource.file_id.split('_resource_', 1)[-1].split('_', 1)[-1] }}
+              </a>
+            {% endfor %}
+          {% endif %}
+        </div>
+
+        {% if submission_file %}
+        <div class="submission-status">
+          <p>Ваше последнее решение:</p>
+          <a href="/submissions/{{submission.id}}/file?user_id={{submission.user_id}}" class="file-link" download>Скачать файл</a>
+        </div>
+        {% else %}
+        <p class="submission-status">Вы ещё не загружали решений</p>
+        {% endif %}
+
+        <div class="button-group">
+          <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
+            Вернуться назад
           </a>
-        {% endfor %}
+        </div>
+      </section>
+
+      {% if not due %}
+      <section class="assignment-editor-column">
+        <div
+          id="embedded-editor-section"
+          class="submit-assignment-container"
+          data-assignment-id="{{ assignment.id }}">
+          <p><strong>Редактор JupyterLab:</strong></p>
+          <p id="editor-status" class="mt-2 text-sm text-gray-600">Инициализация редактора...</p>
+          <div id="editor-frame-container" class="editor-frame-container" style="display:none;">
+            <iframe
+              id="notebook-iframe"
+              title="Notebook Editor"
+              class="notebook-iframe"
+              loading="lazy"></iframe>
+          </div>
+          <div class="button-group action-buttons">
+            <button type="button" id="save-notebook-btn" class="action-btn action-btn-secondary">Сохранить черновик</button>
+            <button type="button" id="evaluate-notebook-btn" class="action-btn action-btn-primary">Отправить и проверить решение</button>
+          </div>
+          <p id="editor-message" class="mt-2 text-sm"></p>
+        </div>
+
+        <div class="submit-assignment-container upload-container">
+          <p><strong>Или загрузите файл с решением:</strong></p>
+          <input type="file" id="submission-file" class="w-full p-2 border border-gray-300 rounded-md" accept=".ipynb">
+          <div class="button-group action-buttons">
+            <button
+              type="button"
+              id="submit-btn"
+              class="action-btn action-btn-primary"
+              data-assignment-id="{{ assignment.id }}">
+              Отправить и проверить решение
+            </button>
+          </div>
+          <p id="upload-message" class="mt-2 text-sm"></p>
+        </div>
+      </section>
       {% endif %}
     </div>
-
-    {% if submission_file %}
-    <div>
-      <p>Ваше последнее решение:</p>
-      <a href="/submissions/{{submission.id}}/file?user_id={{submission.user_id}}" class="text-blue-500" download>Скачать файл</a>
-    </div>
-    {% else %}
-    <p>Вы ещё не загружали решений</p>
-    {% endif %}
-
-    {% if not due %}
-    <div
-      id="embedded-editor-section"
-      class="submit-assignment-container"
-      data-assignment-id="{{ assignment.id }}">
-      <p><strong>Встроенный редактор (JupyterLab):</strong></p>
-      <p id="editor-status" class="mt-2 text-sm text-gray-600">Инициализация редактора...</p>
-      <div id="editor-frame-container" style="display:none; margin-top: 0.75rem;">
-        <iframe
-          id="notebook-iframe"
-          title="Notebook Editor"
-          style="width:100%; height:700px; border:1px solid #d1d5db; border-radius: 0.375rem;"
-          loading="lazy"></iframe>
-      </div>
-      <div class="button-group">
-        <button type="button" id="save-notebook-btn" class="submit-btn">Сохранить черновик</button>
-        <button type="button" id="evaluate-notebook-btn" class="submit-btn">Отправить из редактора</button>
-      </div>
-      <p id="editor-message" class="mt-2 text-sm"></p>
-    </div>
-
-    <div class="submit-assignment-container">
-      <p><strong>Или загрузите файл с решением:</strong></p>
-      <input type="file" id="submission-file" class="w-full p-2 border border-gray-300 rounded-md" accept=".ipynb">
-      <div class="button-group">
-        <button
-          type="button"
-          id="submit-btn"
-          class="submit-btn"
-          data-assignment-id="{{ assignment.id }}">
-          Отправить и оценить решение
-        </button>
-      </div>
-      <p id="upload-message" class="mt-2 text-sm"></p>
-    </div>
-
-    <div class="button-group">
-      <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
-        Вернуться назад
-      </a>
-    </div>
-    {% else %}
-    <div class="button-group">
-      <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
-        Вернуться назад
-      </a>
-    </div>
-    {% endif %}
   </main>
 
   <footer class="footer">
