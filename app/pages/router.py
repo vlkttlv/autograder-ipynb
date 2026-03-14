@@ -20,6 +20,7 @@ from app.logger import configure_logging
 from app.submissions.services.service import (
     SubmissionFilesDAO,
     SubmissionsDAO,
+    SubmissionAttemptsDAO,
 )
 from app.user.models import Users
 from app.db import get_db_session
@@ -195,6 +196,12 @@ async def assignment_page(
             and assignment.start_time < datetime.now().time()
         ):
             due = True
+        
+        attempts = await SubmissionAttemptsDAO.find_for_student_assignment(
+            session=session,
+            user_id=current_user.id,
+            assignment_id=assignment_id,
+        )
 
         resources = await AssignmentFileDAO.find_all(
             session=session,
@@ -215,6 +222,7 @@ async def assignment_page(
                 "search": search or "",
                 "resources": resources,
                 "discipline_id": discipline_id,
+                "attempts": attempts,
             },
         )
 

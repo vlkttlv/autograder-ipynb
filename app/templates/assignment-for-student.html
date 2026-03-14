@@ -66,6 +66,54 @@
         <p class="submission-status">Вы ещё не загружали решений</p>
         {% endif %}
 
+        
+        {% if attempts %}
+        <section class="submission-status">
+          <p><strong>История попыток:</strong></p>
+          <div class="attempts-history-wrapper">
+            <table class="attempts-history-table">
+              <thead>
+                <tr>
+                  <th>Попытка</th>
+                  <th>Дата</th>
+                  <th>Баллы</th>
+                  <th>Файл</th>
+                  <th>Ошибки</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for attempt in attempts %}
+                <tr>
+                  <td>#{{ attempt.attempt_number }}</td>
+                  <td>{{ attempt.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                  <td>{{ attempt.score }}</td>
+                  <td>
+                    <a href="/submissions/attempts/{{ attempt.id }}/file" class="file-link" download>
+                      solution_{{ attempt.attempt_number }}.ipynb
+                    </a>
+                  </td>
+                  <td>
+                    {% if attempt.feedback %}
+                      {% if attempt.feedback is mapping %}
+                        {% for key, value in attempt.feedback.items() %}
+                          <div><strong>{{ key }}:</strong> {{ value }}</div>
+                        {% endfor %}
+                      {% else %}
+                        {{ attempt.feedback }}
+                      {% endif %}
+                    {% else %}
+                      Ошибок нет
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endif %}
+
+
         <div class="button-group">
           <a href="/pages/student-home?page={{ page }}&sort={{ sort }}&search={{ search }}&discipline_id={{ discipline_id }}" class="back-button">
             Вернуться назад

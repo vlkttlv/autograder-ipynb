@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select, func, asc, or_
 from app.assignment.models import Assignments
 from app.service.base import BaseDAO
-from app.submissions.models import Submissions, SubmissionFiles
+from app.submissions.models import Submissions, SubmissionFiles, SubmissionAttempt
 from app.db import async_session_maker
 from app.user.models import Users
 
@@ -124,3 +124,25 @@ class SubmissionsDAO(BaseDAO):
 
 class SubmissionFilesDAO(BaseDAO):
     model = SubmissionFiles
+
+
+class SubmissionAttemptsDAO(BaseDAO):
+    model = SubmissionAttempt
+
+    @classmethod
+    async def find_for_student_assignment(
+        cls,
+        session: AsyncSession,
+        user_id: int,
+        assignment_id: str,
+    ):
+        query = (
+            select(SubmissionAttempt)
+            .where(
+                SubmissionAttempt.user_id == user_id,
+                SubmissionAttempt.assignment_id == assignment_id,
+            )
+            .order_by(desc(SubmissionAttempt.created_at), desc(SubmissionAttempt.attempt_number))
+        )
+        result = await session.execute(query)
+        return result.scalars().all()

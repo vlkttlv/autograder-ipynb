@@ -13,7 +13,7 @@ from app.user.models import Users
 from app.models import RefreshToken, Groups
 from app.discipline.models import Disciplines
 from app.assignment.models import Assignments, AssignmentFile
-from app.submissions.models import Submissions, SubmissionFiles
+from app.submissions.models import Submissions, SubmissionFiles, SubmissionAttempt
 
 config = context.config
 

@@ -209,3 +209,26 @@ html, body {
     min-height: 500px;
   }
 }
+.attempts-history-wrapper {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+
+.attempts-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.attempts-history-table th,
+.attempts-history-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.attempts-history-table th {
+  background: #f3f4f6;
+  text-align: left;
+  color: #374151;
+}

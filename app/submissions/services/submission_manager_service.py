@@ -14,7 +14,7 @@ from app.exceptions import (
 from app.logger import configure_logging
 from app.submissions.services.notebook_service import NotebookService
 from app.submissions.services.sandbox_runner import SandboxNotebookRunner
-from app.submissions.services.service import SubmissionFilesDAO, SubmissionsDAO
+from app.submissions.services.service import SubmissionFilesDAO, SubmissionsDAO, SubmissionAttemptsDAO
 
 logger = logging.getLogger(__name__)
 configure_logging()
@@ -193,12 +193,26 @@ class SubmissionManagerService:
         )
 
         # 6) Фиксируем результат: баллы, число попыток, индексы упавших тестов.
+        next_attempt_number = submission_service.number_of_attempts + 1
         await SubmissionsDAO.update(
             session=session,
             model_id=submission_service.id,
             score=total_points,
-            number_of_attempts=submission_service.number_of_attempts + 1,
+            number_of_attempts=next_attempt_number,
             feedback=feedback,
+        )
+
+        # 7) Сохраняем историю попыток с метаданными и ссылкой на файл решения.
+        await SubmissionAttemptsDAO.add(
+            session=session,
+            submission_id=submission_service.id,
+            assignment_id=assignment_id,
+            user_id=submission_service.user_id,
+            attempt_number=next_attempt_number,
+            score=total_points,
+            feedback=feedback,
+            file_id=submission_file.file_id,
+            file_link=submission_file.file_link,
         )
 
         logger.info(

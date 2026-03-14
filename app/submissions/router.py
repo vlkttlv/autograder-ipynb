@@ -12,6 +12,7 @@ from app.submissions.schemas import NotebookSaveRequest
 from app.submissions.services.service import (
     SubmissionFilesDAO,
     SubmissionsDAO,
+    SubmissionAttemptsDAO,
 )
 from app.submissions.services.embedded_notebook_service import EmbeddedNotebookService
 from app.submissions.services.notebook_service import NotebookService
@@ -246,6 +247,32 @@ async def get_file_of_submission(submission_id: str, session: AsyncSession = Dep
         media_type="application/x-jupyter-notebook",
         headers={
             "Content-Disposition": f"attachment; filename={submission.submission_id}_mod.ipynb"
+        },
+    )
+
+
+@sub_router.get(
+    "/attempts/{attempt_id}/file",
+    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+)
+async def get_file_of_submission_attempt(
+    attempt_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Скачивание файла конкретной попытки решения студента"""
+    attempt = await SubmissionAttemptsDAO.find_one_or_none(
+        session=session, id=attempt_id, user_id=current_user.id
+    )
+    if not attempt:
+        raise SolutionNotFoundException
+
+    content = dropbox_service.download_file(attempt.file_id)
+    return Response(
+        content=content,
+        media_type="application/x-jupyter-notebook",
+        headers={
+            "Content-Disposition": f"attachment; filename={attempt.assignment_id}_{attempt.attempt_number}.ipynb"
         },
     )
 
