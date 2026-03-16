@@ -1,5 +1,5 @@
 import logging
-
+import asyncio
 import nbformat
 
 from app.assignment.schemas import TypeOfAssignmentFile
@@ -21,6 +21,17 @@ configure_logging()
 
 
 class SubmissionManagerService:
+
+    @staticmethod
+    async def _run_blocking(func, *args, **kwargs):
+        """Выполняет синхронные CPU/IO операции в отдельном потоке.
+
+        Это не блокирует event loop и позволяет обрабатывать параллельные
+        проверки от нескольких студентов одновременно.
+        """
+        return await asyncio.to_thread(func, *args, **kwargs)
+
+
     @staticmethod
     async def process_and_upload_submission(
         session,
@@ -69,7 +80,9 @@ class SubmissionManagerService:
         resources = [
             (
                 resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1],
-                dropbox_service.download_file(resource.file_id),
+                await SubmissionManagerService._run_blocking(
+                    dropbox_service.download_file, resource.file_id
+                ),
             )
             for resource in assignment_resources
         ]
@@ -77,10 +90,13 @@ class SubmissionManagerService:
         # 4) Выполняем notebook в изолированном Docker-контейнере.
         notebook_bytes = nbformat.writes(notebook).encode("utf-8")
         executed_notebook = nbformat.reads(
-            SandboxNotebookRunner.execute_notebook(
-                notebook_bytes,
-                resources,
-                timeout_seconds=assignment.execution_timeout_seconds,
+            (
+                await SubmissionManagerService._run_blocking(
+                    SandboxNotebookRunner.execute_notebook,
+                    notebook_bytes,
+                    resources,
+                    timeout_seconds=assignment.execution_timeout_seconds,
+                )
             ).decode("utf-8"),
             as_version=4,
         )
@@ -102,7 +118,8 @@ class SubmissionManagerService:
 
         # 6) Сохраняем уже исполненный notebook в хранилище submissions.
         submission_notebook = nbformat.writes(executed_notebook).encode("utf-8")
-        upload_info = dropbox_service.upload_file(
+        upload_info = await SubmissionManagerService._run_blocking(
+            dropbox_service.upload_file,
             submission_notebook,
             filename=f"{user_id}_{assignment_id}.ipynb",
             folder_type="submissions",
@@ -148,7 +165,10 @@ class SubmissionManagerService:
             raise SolutionNotFoundException
 
         # 2) Загружаем и валидируем notebook студента.
-        file_content = dropbox_service.download_file(submission_file.file_id)
+        file_content = await SubmissionManagerService._run_blocking(
+            dropbox_service.download_file,
+            submission_file.file_id,
+        )
         try:
             nbformat.reads(file_content.decode("utf-8"), as_version=4)
         except Exception as e:
@@ -164,7 +184,10 @@ class SubmissionManagerService:
         if assignment is None or assignment_file is None:
             raise AssignmentNotFoundException
 
-        assignment_content = dropbox_service.download_file(assignment_file.file_id)
+        assignment_content = await SubmissionManagerService._run_blocking(
+            dropbox_service.download_file,
+            assignment_file.file_id,
+        )
         try:
             nbformat.reads(assignment_content.decode("utf-8"), as_version=4)
         except Exception as e:
@@ -179,13 +202,16 @@ class SubmissionManagerService:
         resources = [
             (
                 resource.file_id.split("_resource_", 1)[-1].split("_", 1)[-1],
-                dropbox_service.download_file(resource.file_id),
+                await SubmissionManagerService._run_blocking(
+                    dropbox_service.download_file, resource.file_id
+                ),
             )
             for resource in assignment_resources
         ]
 
         # 5) Запускаем sandbox grading (подмена test-cell на tutor tests).
-        total_points, feedback = SandboxNotebookRunner.grade_notebook(
+        total_points, feedback = await SubmissionManagerService._run_blocking(
+            SandboxNotebookRunner.grade_notebook,
             file_content,
             assignment_content,
             resources,
