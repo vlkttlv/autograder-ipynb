@@ -4,5 +4,6 @@ venv
 .env.docker
 .pytest_cache
 .ruff_cache
+.vscode
 credentials
 app/logs/autograder.log

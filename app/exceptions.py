@@ -122,3 +122,7 @@ class NotebookEditorUnavailableException(AutograderException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     detail = "Jupyter временно недоступен"
 
+
+class RateLimitExceededException(AutograderException):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    detail = "Слишком частые запросы. Повторите попытку позже"

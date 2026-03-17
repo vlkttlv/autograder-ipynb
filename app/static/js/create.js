@@ -1,3 +1,19 @@
+const resourceFilesInput = document.getElementById('resource_files');
+const resourceFilesSelected = document.getElementById('resource-files-selected');
+
+if (resourceFilesInput && resourceFilesSelected) {
+  resourceFilesInput.addEventListener('change', function() {
+    const files = Array.from(this.files || []);
+
+    if (!files.length) {
+      resourceFilesSelected.textContent = 'Файлы не выбраны';
+      return;
+    }
+
+    resourceFilesSelected.textContent = files.map((file) => file.name).join(', ');
+  });
+}
+
 document.getElementById('submit-btn').addEventListener('click', async function() {
   const form = document.getElementById('assignment-form');
   const formData = new FormData(form);

@@ -1,30 +1,34 @@
 import logging
+
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.assignment.schemas import SortEnum
 from app.auth.dependencies import check_student_role, get_current_user
+from app.config import settings
 from app.db import get_db_session
+from app.dropbox.service import dropbox_service
 from app.exceptions import (
+    NotebookEditorUnavailableException,
     SolutionNotFoundException,
 )
-from app.submissions.schemas import SubmissionQueryParams
-from app.submissions.schemas import NotebookSaveRequest
+from app.logger import configure_logging
+from app.submissions.schemas import NotebookSaveRequest, SubmissionQueryParams
+from app.submissions.services.embedded_notebook_service import (
+    EmbeddedNotebookService,
+)
+from app.submissions.services.notebook_service import NotebookService
 from app.submissions.services.service import (
+    SubmissionAttemptsDAO,
     SubmissionFilesDAO,
     SubmissionsDAO,
-    SubmissionAttemptsDAO,
 )
-from app.submissions.services.embedded_notebook_service import EmbeddedNotebookService
-from app.submissions.services.notebook_service import NotebookService
 from app.submissions.services.submission_manager_service import (
     SubmissionManagerService,
 )
+from app.submissions.utils import enforce_submission_evaluate_rate_limit
 from app.user.models import Users
-from app.logger import configure_logging
 from app.user.router import refresh_token
-from app.dropbox.service import dropbox_service
-from app.config import settings
-from app.exceptions import NotebookEditorUnavailableException
 
 logger = logging.getLogger(__name__)
 configure_logging()
@@ -48,7 +52,9 @@ async def create_notebook_session(
         return {"enabled": False, "message": "embedded editor disabled"}
     try:
         return await EmbeddedNotebookService.create_session(
-            session=session, assignment_id=assignment_id, current_user=current_user
+            session=session,
+            assignment_id=assignment_id,
+            current_user=current_user,
         )
     except NotebookEditorUnavailableException:
         return {"enabled": False, "message": "embedded editor unavailable"}
@@ -76,7 +82,11 @@ async def save_notebook_draft(
 
 @router.post(
     "/{assignment_id}/notebook/evaluate",
-    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+    dependencies=[
+        Depends(refresh_token),
+        Depends(check_student_role),
+        Depends(enforce_submission_evaluate_rate_limit),
+    ],
 )
 async def evaluate_embedded_notebook(
     assignment_id: str,
@@ -93,7 +103,7 @@ async def evaluate_embedded_notebook(
         current_user=current_user,
         jupyter_token=body.jupyter_token,
     )
-    # Передаем файл решения в подсистему проверки, 
+    # Передаем файл решения в подсистему проверки,
     # которая выполняет подготовку и загрузку решения в среду проверки
     await SubmissionManagerService.process_and_upload_submission_bytes(
         session=session,
@@ -103,8 +113,10 @@ async def evaluate_embedded_notebook(
         user_email=current_user.email,
     )
     # Проверяем срок сдачи задания и доступное количество попыток отправки
-    submission_service = await NotebookService.check_date_and_attempts_submission(
-        session, assignment_id, current_user
+    submission_service = (
+        await NotebookService.check_date_and_attempts_submission(
+            session, assignment_id, current_user
+        )
     )
     # Запускаем автоматическую проверку решения в изолированной среде
     total_points, feedback = await SubmissionManagerService.evaluate_submission(
@@ -122,12 +134,16 @@ async def add_submission(
     assignment_id: str,
     submission_file: UploadFile = File(...),
     current_user: Users = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Загрузка решения"""
     submission_id = (
         await SubmissionManagerService.process_and_upload_submission(
-            session, assignment_id, submission_file, current_user.id, current_user.email
+            session,
+            assignment_id,
+            submission_file,
+            current_user.id,
+            current_user.email,
         )
     )
 
@@ -136,13 +152,19 @@ async def add_submission(
         "submission_id": submission_id,
     }
 
+
 @router.post(
     "/{assignment_id}/submissions/evaluate",
-    dependencies=[Depends(refresh_token), Depends(check_student_role)],
+    dependencies=[
+        Depends(refresh_token),
+        Depends(check_student_role),
+        Depends(enforce_submission_evaluate_rate_limit),
+    ],
 )
 async def evaluate_submission(
-    assignment_id: str, current_user: Users = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    assignment_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Проверка решения"""
 
@@ -179,7 +201,7 @@ async def get_submissions(
             session=session,
             user_id=current_user.id,
             search=search,
-            discipline_id=discipline_id
+            discipline_id=discipline_id,
         )
         submissions = await SubmissionsDAO.find_all(
             session=session,
@@ -189,13 +211,11 @@ async def get_submissions(
             order_by=order_by,
             desc_order=desc_order,
             search=search,
-            discipline_id=discipline_id
+            discipline_id=discipline_id,
         )
     else:
         total = await SubmissionsDAO.count(
-            session=session,
-            user_id=current_user.id,
-            search=search
+            session=session, user_id=current_user.id, search=search
         )
         submissions = await SubmissionsDAO.find_all(
             session=session,
@@ -204,7 +224,7 @@ async def get_submissions(
             limit=params.limit,
             order_by=order_by,
             desc_order=desc_order,
-            search=search
+            search=search,
         )
 
     return {"submissions": submissions, "total": total}
@@ -215,8 +235,9 @@ async def get_submissions(
     dependencies=[Depends(refresh_token), Depends(check_student_role)],
 )
 async def get_submission(
-    submission_id: str, current_user: Users = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    submission_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Получение конкретного решения"""
     submission = await SubmissionsDAO.find_one_or_none(
@@ -231,9 +252,13 @@ async def get_submission(
     "/{submission_id}/file",
     dependencies=[Depends(refresh_token), Depends(get_current_user)],
 )
-async def get_file_of_submission(submission_id: str, session: AsyncSession = Depends(get_db_session)):
+async def get_file_of_submission(
+    submission_id: str, session: AsyncSession = Depends(get_db_session)
+):
     """Скачивание файла с решением"""
-    submission = await SubmissionsDAO.find_one_or_none(session=session, id=submission_id)
+    submission = await SubmissionsDAO.find_one_or_none(
+        session=session, id=submission_id
+    )
     if not submission:
         raise SolutionNotFoundException
 
@@ -282,8 +307,9 @@ async def get_file_of_submission_attempt(
     dependencies=[Depends(refresh_token), Depends(check_student_role)],
 )
 async def delete_submission(
-    submission_id: str, current_user: Users = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    submission_id: str,
+    current_user: Users = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Удаление решения"""
     submission = await SubmissionsDAO.find_one_or_none(
@@ -291,6 +317,10 @@ async def delete_submission(
     )
     if not submission:
         raise SolutionNotFoundException
-    await SubmissionFilesDAO.delete(session=session, submission_id=submission_id)
-    await SubmissionsDAO.delete(session=session, id=submission_id, user_id=current_user.id)
+    await SubmissionFilesDAO.delete(
+        session=session, submission_id=submission_id
+    )
+    await SubmissionsDAO.delete(
+        session=session, id=submission_id, user_id=current_user.id
+    )
     return {"message": "Решение удалено"}

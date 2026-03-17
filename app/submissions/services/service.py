@@ -146,3 +146,23 @@ class SubmissionAttemptsDAO(BaseDAO):
         )
         result = await session.execute(query)
         return result.scalars().all()
+
+
+    @classmethod
+    async def find_latest_created_at(
+        cls,
+        session: AsyncSession,
+        user_id: int,
+        assignment_id: str,
+    ):
+        stmt = (
+            select(SubmissionAttempt.created_at)
+            .where(
+                SubmissionAttempt.user_id == user_id,
+                SubmissionAttempt.assignment_id == assignment_id,
+            )
+            .order_by(desc(SubmissionAttempt.created_at))
+            .limit(1)
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()

@@ -50,7 +50,7 @@
       <div>
         <label for="execution_timeout_seconds" class="block font-semibold text-lg">Максимальное время выполнения проверки (сек.)</label>
         <input type="number" id="execution_timeout_seconds" name="execution_timeout_seconds" min="1" max="1000" value="60" required class="w-full p-2 border border-gray-300 rounded-md">
-        <p class="text-sm text-gray-500 mt-1">Ограничение на выполнение всего ноутбука при проверке.</p>
+        <p class="text-sm text-gray-500 mt-1">Ограничение на выполнение всего ноутбука при проверке</p>
       </div>
       <div>
         <label for="start_date" class="block font-semibold text-lg">Дата открытия теста</label>
@@ -75,7 +75,8 @@
       <div>
         <label for="resource_files" class="block font-semibold text-lg">Дополнительные файлы для задания (опционально)</label>
         <input type="file" id="resource_files" name="resource_files" multiple class="w-full p-2 border border-gray-300 rounded-md">
-        <p class="text-sm text-gray-500 mt-1">Например: CSV, TXT, изображения, Python-модули, которые используются в ноутбуке.</p>
+        <span id="resource-files-selected" class="resource-files-selected text-sm text-gray-600"></span>
+        <p class="text-sm text-gray-500 mt-1">Например: CSV, TXT, изображения и т. д.</p>
       </div>
       <div class="flex gap-4 justify-center mt-6">
         <button type="button" id="submit-btn" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-colors">Создать задание</button>
