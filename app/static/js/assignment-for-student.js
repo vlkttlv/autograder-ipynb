@@ -166,7 +166,14 @@ document.addEventListener("DOMContentLoaded", function () {
         disableEmbeddedEditorActions();
         return;
       }
-
+      
+      notebookIframe.addEventListener(
+        "load",
+        () => {
+          if (editorStatus) editorStatus.style.display = "none";
+        },
+        { once: true }
+      );
       notebookIframe.src = data.iframe_url;
       editorFrameContainer.style.display = "block";
 

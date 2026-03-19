@@ -292,10 +292,16 @@ async def create_assignment_page(
     if not isinstance(current_user, Users):
         return RedirectResponse(url="/pages/auth/login")
     today = date.today().isoformat()
+    static_version = int(datetime.utcnow().timestamp())
     disciplines = await DisciplinesDAO.find_all(session=session, teacher_id=current_user.id)
     return templates.TemplateResponse(
         "create.html",
-        {"request": request, "today": today, "disciplines": disciplines},
+        {
+            "request": request,
+            "today": today,
+            "disciplines": disciplines,
+            "static_version": static_version,
+        },
     )
 
 # TODO пофиксить обновление

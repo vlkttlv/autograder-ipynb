@@ -29,23 +29,7 @@
           <p><strong>Дата сдачи теста:</strong> {{ assignment.due_date }} до {{ assignment.due_time.strftime("%H:%M") }}</p>
           <p><strong>Максимальное количество попыток:</strong> {{ assignment.number_of_attempts }}</p>
           <p><strong>Лимит времени проверки:</strong> {{ assignment.execution_timeout_seconds }} сек.</p>
-          {% if submission %}
-          <p><strong>Затрачено попыток:</strong> {{ submission.number_of_attempts }}</p>
-          {% else %}
-          <p><strong>Затрачено попыток:</strong> 0</p>
-          {% endif %}
           <p><strong>Максимальное количество баллов:</strong> {{ assignment.grade }}</p>
-          {% if submission %}
-          <p><strong>Получено баллов:</strong> {{ submission.score }}</p>
-          <p><strong>Ячейки с ошибками:</strong>
-          {% if submission.feedback %}
-            {{ submission.feedback }}
-          {% else %}
-            Ошибок нет
-          {% endif %}
-          </p>
-          {% endif %}
-
           <p><a href="/assignments/{{ assignment.id }}/file/modified" class="file-link">Скачать задание</a></p>
           {% if resources %}
             <p><strong>Дополнительные файлы:</strong></p>
@@ -56,17 +40,6 @@
             {% endfor %}
           {% endif %}
         </div>
-
-        {% if submission_file %}
-        <div class="submission-status">
-          <p>Ваше последнее решение:</p>
-          <a href="/submissions/{{submission.id}}/file?user_id={{submission.user_id}}" class="file-link" download>Скачать файл</a>
-        </div>
-        {% else %}
-        <p class="submission-status">Вы ещё не загружали решений</p>
-        {% endif %}
-
-        
         {% if attempts %}
         <section class="submission-status">
           <p><strong>История попыток:</strong></p>
@@ -111,6 +84,8 @@
             </table>
           </div>
         </section>
+        {% else %}
+        <p class="submission-status">Вы ещё не загружали решений</p>
         {% endif %}
 
 

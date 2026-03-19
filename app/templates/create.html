@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <title>Создать задание</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', path='css/create.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', path='css/create.css') }}?v={{ static_version }}" rel="stylesheet">
   <script src="{{ url_for('static', path='js/script.js') }}" defer></script>
-  <script src="{{ url_for('static', path='js/create.js') }}" defer></script>
+  <script src="{{ url_for('static', path='js/create.js') }}?v={{ static_version }}" defer></script>
 </head>
 <body class="body-base">
   <nav class="nav-base">
