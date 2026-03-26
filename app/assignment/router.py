@@ -208,7 +208,72 @@ async def download_assignment_resource(
     )
 
 
+@router.post(
+    "/{assignment_id}/resources",
+    dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
+)
+async def upload_assignment_resources(
+    assignment_id: str,
+    resource_files: list[UploadFile] = File(...),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Добавление дополнительных файлов к заданию."""
+    assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
+    if assignment is None:
+        raise AssignmentNotFoundException
 
+    resource_payload = []
+    for resource_file in resource_files:
+        if resource_file and resource_file.filename:
+            resource_payload.append(
+                {
+                    "filename": resource_file.filename,
+                    "content": await resource_file.read(),
+                }
+            )
+
+    if not resource_payload:
+        raise HTTPException(status_code=400, detail="Не выбраны дополнительные файлы")
+
+    await AssignmentManagerService.upload_resource_files(
+        assignment_id=assignment_id,
+        resource_files=resource_payload,
+    )
+    return {"status": "ok"}
+
+
+@router.delete(
+    "/{assignment_id}/resources/{resource_id}",
+    status_code=204,
+    dependencies=[Depends(refresh_token), Depends(check_tutor_role)],
+)
+async def delete_assignment_resource(
+    assignment_id: str,
+    resource_id: int,
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Удаление дополнительного файла задания."""
+    resource = await AssignmentFileDAO.find_one_or_none(
+        session=session,
+        id=resource_id,
+        assignment_id=assignment_id,
+        file_type=TypeOfAssignmentFile.RESOURCE,
+    )
+    if resource is None:
+        raise AssignmentNotFoundException
+
+    if resource.file_id:
+        try:
+            dropbox_service.delete_file(resource.file_id)
+        except Exception as exc:
+            logger.error("Ошибка удаления файла %s из dropbox: %s", resource.file_id, exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Не удалось удалить файл из Dropbox",
+            ) from exc
+
+    await AssignmentFileDAO.delete(session=session, id=resource_id)
+    
 @router.get(
     "/",
     response_model=AssignmentListResponse,

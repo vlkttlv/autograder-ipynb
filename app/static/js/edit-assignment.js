@@ -1,3 +1,70 @@
+const resourceFilesInput = document.getElementById('resource_files');
+const resourceFilesSelected = document.getElementById('resource-files-selected');
+
+if (resourceFilesInput && resourceFilesSelected) {
+  resourceFilesInput.addEventListener('change', () => {
+    const selectedNames = Array.from(resourceFilesInput.files).map((file) => file.name);
+    resourceFilesSelected.textContent = selectedNames.length
+      ? `Выбрано файлов: ${selectedNames.join(', ')}`
+      : '';
+  });
+}
+
+document.querySelectorAll('.resource-delete-btn').forEach((deleteButton) => {
+  deleteButton.addEventListener('click', async () => {
+    const assignmentId = document.getElementById('assignment-form').dataset.assignmentId;
+    const resourceId = deleteButton.dataset.resourceId;
+
+    const shouldDelete = window.confirm('Вы точно хотите удалить файл?');
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/assignments/${assignmentId}/resources/${resourceId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Ошибка удаления дополнительного файла:', errorData);
+        document.getElementById('error-message').textContent = errorData.detail || 'Ошибка при удалении дополнительного файла';
+        document.getElementById('error-message').classList.remove('hidden');
+        return;
+      }
+
+      const resourceItem = deleteButton.closest('.resource-item');
+      if (resourceItem) {
+        const resourceLink = resourceItem.querySelector('a');
+        if (resourceLink) {
+          resourceLink.classList.add('line-through', 'text-gray-400', 'pointer-events-none');
+          resourceLink.removeAttribute('href');
+          resourceLink.removeAttribute('download');
+        }
+
+        deleteButton.textContent = 'Удалено';
+        deleteButton.classList.remove('text-red-600', 'hover:underline');
+        deleteButton.classList.add('text-gray-500', 'cursor-not-allowed');
+        deleteButton.disabled = true;
+
+        if (!resourceItem.querySelector('.resource-deleted-label')) {
+          const deletedLabel = document.createElement('span');
+          deletedLabel.className = 'resource-deleted-label text-gray-500 text-sm';
+          deletedLabel.textContent = '(файл удалён)';
+          resourceItem.appendChild(deletedLabel);
+        }
+
+        resourceItem.classList.add('hidden');
+        resourceItem.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Ошибка удаления дополнительного файла:', error);
+      document.getElementById('error-message').textContent = 'Произошла ошибка при удалении дополнительного файла';
+      document.getElementById('error-message').classList.remove('hidden');
+    }
+  });
+});
+
 document.getElementById('save-changes-btn').addEventListener('click', async function() {
   const form = document.getElementById('assignment-form');
   const formData = new FormData(form);
@@ -79,6 +146,26 @@ document.getElementById('save-changes-btn').addEventListener('click', async func
       }
     }
 
+    const resourceFiles = resourceFilesInput ? Array.from(resourceFilesInput.files) : [];
+    if (resourceFiles.length > 0) {
+      const resourceFormData = new FormData();
+      resourceFiles.forEach((resourceFile) => {
+        resourceFormData.append('resource_files', resourceFile);
+      });
+
+      const resourcesResponse = await fetch(`/assignments/${assignmentId}/resources`, {
+        method: 'POST',
+        body: resourceFormData,
+      });
+
+      if (!resourcesResponse.ok) {
+        const resourcesErrorData = await resourcesResponse.json();
+        console.error('Ошибка добавления дополнительных файлов:', resourcesErrorData);
+        document.getElementById('error-message').textContent = resourcesErrorData.detail || 'Ошибка при добавлении дополнительных файлов';
+        document.getElementById('error-message').classList.remove('hidden');
+        return;
+      }
+    }
     window.location.href = '/pages/tutor-home';
 
   } catch (error) {

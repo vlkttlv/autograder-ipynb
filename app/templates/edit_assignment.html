@@ -88,8 +88,9 @@
         <div>
         <p class="font-semibold text-lg">Текущие дополнительные файлы:</p>
         {% for res_file in resource_files %}
-        <div>
+        <div class="flex items-center gap-2 resource-item" data-resource-id="{{ res_file[0] }}">
           <a href="{{ url_for('download_assignment_resource', assignment_id=assignment.id, resource_id=res_file[0]) }}" class="text-blue-500" download>{{ res_file[1]}}</a>
+                    <button type="button" class="resource-delete-btn text-red-600 hover:underline" data-resource-id="{{ res_file[0] }}">Удалить</button>
         </div>
         {% endfor %}
         </div>
