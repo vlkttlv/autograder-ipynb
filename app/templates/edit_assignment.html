@@ -76,8 +76,23 @@
       {% if file %}
       <div>
         <p class="font-semibold text-lg">Текущий файл задания:</p>
-        <a href="{{ url_for('get_file_of_original_assignment', assignment_id=assignment.id) }}" class="text-blue-500" download>Скачать файл</a>
+        <a href="{{ url_for('get_file_of_original_assignment', assignment_id=assignment.id) }}" class="text-blue-500" download>{{assignment.name}}</a>
       </div>
+      {% endif %}
+      <div>
+        <label for="resource_files" class="block font-semibold text-lg">Изменить дополнительные файлы:</label>
+        <input type="file" id="resource_files" name="resource_files" multiple class="w-full p-2 border border-gray-300 rounded-md">
+        <span id="resource-files-selected" class="text-sm text-gray-600"></span>
+      </div>
+      {% if resource_files %}
+        <div>
+        <p class="font-semibold text-lg">Текущие дополнительные файлы:</p>
+        {% for res_file in resource_files %}
+        <div>
+          <a href="{{ url_for('download_assignment_resource', assignment_id=assignment.id, resource_id=res_file[0]) }}" class="text-blue-500" download>{{ res_file[1]}}</a>
+        </div>
+        {% endfor %}
+        </div>
       {% endif %}
       <div class="flex gap-4 justify-center mt-6">
         <button type="button" id="save-changes-btn" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-colors">Сохранить изменения</button>

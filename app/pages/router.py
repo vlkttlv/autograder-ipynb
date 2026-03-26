@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.assignment.router import (
     get_file_of_original_assignment,
+    get_assignment_resources
 )
 from app.assignment.schemas import SortEnum, TypeOfAssignmentFile
 from app.assignment.services.dao_service import AssignmentDAO, AssignmentFileDAO, DisciplinesDAO
@@ -319,12 +320,19 @@ async def update_assignment_page(
     assignment = await AssignmentDAO.find_one_or_none(session=session, id=assignment_id)
     file = await get_file_of_original_assignment(assignment_id, session)
     disciplines = await DisciplinesDAO.find_all(session=session, teacher_id=current_user.id)
+    resource_files = await get_assignment_resources(assignment_id, session)
+    res_files_ids = []
+    if resource_files:
+        for res_file in resource_files:
+            res_files_ids.append((res_file["id"], res_file["name"]))
+
     return templates.TemplateResponse(
         "edit_assignment.html",
         {
             "request": request,
             "assignment": assignment,
             "file": file,
+            "resource_files": res_files_ids,
             "disciplines": disciplines,
         },
     )
