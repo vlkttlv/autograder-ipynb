@@ -75,6 +75,10 @@ html, body {
   gap: 1.5rem;
   align-items: start;
 }
+.assignment-layout-single {
+  grid-template-columns: minmax(350px, 680px);
+  justify-content: center;
+}
 
 .assignment-sidebar {
   display: flex;

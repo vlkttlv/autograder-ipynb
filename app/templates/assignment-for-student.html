@@ -22,7 +22,7 @@
 
   <main class="main-container">
     <h1 class="main-title">{{ assignment.name or 'Без названия' }}</h1>
-    <div class="assignment-layout">
+    <div class="assignment-layout{% if due %} assignment-layout-single{% endif %}">
       <section class="assignment-sidebar">
         <div class="assignment-details">
           <p><strong>Дата открытия теста:</strong> {{ assignment.start_date }} в {{ assignment.start_time.strftime("%H:%M") }}</p>
